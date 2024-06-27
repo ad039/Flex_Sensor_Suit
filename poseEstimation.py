@@ -17,7 +17,7 @@ def pose_estimation(queue):
     cap = cv2.VideoCapture(0)
 
     i = 100
-    with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5, model_complexity=2) as holistic:
+    with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5, model_complexity=0) as holistic:
         
         while cap.isOpened():
             
@@ -32,6 +32,8 @@ def pose_estimation(queue):
             results = holistic.process(image)
             image_height, image_width, image_depth = image.shape
 
+            hand_centre = (0, 0, 0)
+            normal_vector = [0, 0, 0]
 
             if results.pose_landmarks is not None and results.left_hand_landmarks is not None:
                 right_shoulder = [results.pose_world_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_SHOULDER.value].x,results.pose_world_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_SHOULDER.value].y, results.pose_world_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_SHOULDER.value].z]
@@ -39,7 +41,9 @@ def pose_estimation(queue):
                 hand_points = [[results.left_hand_landmarks.landmark[0].x, results.left_hand_landmarks.landmark[0].y, results.left_hand_landmarks.landmark[0].z],
                                [results.left_hand_landmarks.landmark[5].x, results.left_hand_landmarks.landmark[5].y, results.left_hand_landmarks.landmark[5].z],
                                [results.left_hand_landmarks.landmark[17].x, results.left_hand_landmarks.landmark[17].y, results.left_hand_landmarks.landmark[17].z]]
+                
                 print(hand_points[0][0])
+
                 hand_centre = (np.mean([hand_points[0][0],hand_points[1][0], hand_points[2][0]]), np.mean([hand_points[0][1], hand_points[1][1], hand_points[2][1]]))
 
                 normal_vector = np.cross(np.subtract(hand_points[2],hand_points[0]), np.subtract(hand_points[1], hand_points[2]))
@@ -64,8 +68,8 @@ def pose_estimation(queue):
             color = (255, 0, 0)
             image = cv2.line(image, startpoint, endpoint, color, thickness)
 
-            #mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)
-            #mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
+            mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)
+            mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
 
 
             end = time.time()
