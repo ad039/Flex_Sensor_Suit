@@ -42,27 +42,22 @@ def pose_estimation(queue):
                                [results.left_hand_landmarks.landmark[5].x, results.left_hand_landmarks.landmark[5].y, results.left_hand_landmarks.landmark[5].z],
                                [results.left_hand_landmarks.landmark[17].x, results.left_hand_landmarks.landmark[17].y, results.left_hand_landmarks.landmark[17].z]]
                 
-                print(hand_points[0][0])
+                #print(hand_points[0][0])
 
                 hand_centre = (np.mean([hand_points[0][0],hand_points[1][0], hand_points[2][0]]), np.mean([hand_points[0][1], hand_points[1][1], hand_points[2][1]]))
 
                 normal_vector = np.cross(np.subtract(hand_points[2],hand_points[0]), np.subtract(hand_points[1], hand_points[2]))
                 normal_vector /= np.linalg.norm(normal_vector)
                 
-                #print(normal_vector)
-                n = np.array([0, 0, 1])
-                n_norm = np.linalg.norm(n)
-                proj_norm_vector_on_xy = (np.dot(normal_vector, n)/n_norm**2)*n
-
                 
                 right_wrist_norm = np.subtract(right_wrist,right_shoulder)
                 
-                queue.put(right_wrist_norm)
+                queue.put([right_wrist_norm, normal_vector])
                 i += 1
             
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             startpoint = (int(hand_centre[0]*image_width), int(hand_centre[1]*image_height))
-            print(startpoint)
+            #print(startpoint)
             endpoint = (int(50*normal_vector[0]+startpoint[0]), int(50*normal_vector[1]+startpoint[1]))
             thickness = 9
             color = (255, 0, 0)
