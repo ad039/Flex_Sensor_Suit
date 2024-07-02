@@ -9,6 +9,7 @@ import csv
 
 
 
+
 def pose_estimation(queue):
     
     mp_holistic = mp.solutions.holistic
@@ -16,14 +17,12 @@ def pose_estimation(queue):
 
     cap = cv2.VideoCapture(0)
 
-    i = 100
+    time_prev = 0
     with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5, model_complexity=0) as holistic:
         
         while cap.isOpened():
             
             success, image = cap.read()
-
-            start = time.time()
 
             image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB) # flip to get selfi view, this impacts the landmark extraction later on: take left hand for right hand
 
@@ -53,7 +52,6 @@ def pose_estimation(queue):
                 right_wrist_norm = np.subtract(right_wrist,right_shoulder)
                 
                 queue.put([right_wrist_norm, normal_vector])
-                i += 1
             
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             startpoint = (int(hand_centre[0]*image_width), int(hand_centre[1]*image_height))
@@ -67,8 +65,9 @@ def pose_estimation(queue):
             mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
 
 
-            end = time.time()
-            totalTime = end-start
+            time_now = time.time()
+            totalTime = time_now-time_prev
+            time_prev = time_now
             fps = 1 / totalTime
 
             cv2.putText(image, f'{int(fps)}', (20,70), cv2.FONT_HERSHEY_COMPLEX, 1.5, (0, 255, 0))
