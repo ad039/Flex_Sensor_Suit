@@ -18,7 +18,7 @@ def pose_estimation(queue):
     cap = cv2.VideoCapture(0)
 
     time_prev = 0
-    with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5, model_complexity=0) as holistic:
+    with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5, model_complexity=2) as holistic:
         
         while cap.isOpened():
             
@@ -36,26 +36,22 @@ def pose_estimation(queue):
 
             if results.pose_landmarks is not None and results.left_hand_landmarks is not None:
                 right_shoulder = [results.pose_world_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_SHOULDER.value].x,results.pose_world_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_SHOULDER.value].y, results.pose_world_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_SHOULDER.value].z]
-                right_wrist = [results.pose_world_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_WRIST.value].x,results.pose_world_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_WRIST.value].y, results.pose_world_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_WRIST.value].z]
+                right_wrist = [results.pose_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_WRIST.value].x,results.pose_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_WRIST.value].y, results.pose_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_WRIST.value].z]
                 hand_points = [[results.left_hand_landmarks.landmark[0].x, results.left_hand_landmarks.landmark[0].y, results.left_hand_landmarks.landmark[0].z],
                                [results.left_hand_landmarks.landmark[5].x, results.left_hand_landmarks.landmark[5].y, results.left_hand_landmarks.landmark[5].z],
                                [results.left_hand_landmarks.landmark[17].x, results.left_hand_landmarks.landmark[17].y, results.left_hand_landmarks.landmark[17].z]]
                 
-                #print(hand_points[0][0])
-
-                hand_centre = (np.mean([hand_points[0][0],hand_points[1][0], hand_points[2][0]]), np.mean([hand_points[0][1], hand_points[1][1], hand_points[2][1]]))
-
+                hand_centre = [np.mean([hand_points[0][0],hand_points[1][0], hand_points[2][0]]), np.mean([hand_points[0][1], hand_points[1][1], hand_points[2][1]]), np.mean([hand_points[0][2], hand_points[1][2], hand_points[2][2]])]
+                
                 normal_vector = np.cross(np.subtract(hand_points[2],hand_points[0]), np.subtract(hand_points[1], hand_points[2]))
                 normal_vector /= np.linalg.norm(normal_vector)
                 
-                
-                right_wrist_norm = np.subtract(right_wrist,right_shoulder)
-                
-                queue.put([right_wrist_norm, normal_vector])
+                right_hand_norm = np.subtract(hand_centre,right_shoulder)
+                print(right_wrist, hand_centre)
+                queue.put([right_hand_norm, normal_vector])
             
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             startpoint = (int(hand_centre[0]*image_width), int(hand_centre[1]*image_height))
-            #print(startpoint)
             endpoint = (int(50*normal_vector[0]+startpoint[0]), int(50*normal_vector[1]+startpoint[1]))
             thickness = 9
             color = (255, 0, 0)
