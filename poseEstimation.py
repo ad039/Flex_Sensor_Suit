@@ -35,20 +35,25 @@ def pose_estimation(queue):
             normal_vector = [0, 0, 0]
 
             if results.pose_landmarks is not None and results.left_hand_landmarks is not None:
-                right_shoulder = [results.pose_world_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_SHOULDER.value].x,results.pose_world_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_SHOULDER.value].y, results.pose_world_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_SHOULDER.value].z]
-                right_wrist = [results.pose_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_WRIST.value].x,results.pose_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_WRIST.value].y, results.pose_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_WRIST.value].z]
+                right_shoulder = [results.pose_world_landmarks.landmark[11].x,results.pose_world_landmarks.landmark[11].y, results.pose_world_landmarks.landmark[11].z]
+                right_wrist = [results.pose_world_landmarks.landmark[15].x,results.pose_world_landmarks.landmark[15].y, results.pose_world_landmarks.landmark[15].z]
+                right_index = [results.pose_world_landmarks.landmark[19].x,results.pose_world_landmarks.landmark[19].y, results.pose_world_landmarks.landmark[19].z]
+                right_pinky = [results.pose_world_landmarks.landmark[17].x,results.pose_world_landmarks.landmark[17].y, results.pose_world_landmarks.landmark[17].z]
                 hand_points = [[results.left_hand_landmarks.landmark[0].x, results.left_hand_landmarks.landmark[0].y, results.left_hand_landmarks.landmark[0].z],
                                [results.left_hand_landmarks.landmark[5].x, results.left_hand_landmarks.landmark[5].y, results.left_hand_landmarks.landmark[5].z],
                                [results.left_hand_landmarks.landmark[17].x, results.left_hand_landmarks.landmark[17].y, results.left_hand_landmarks.landmark[17].z]]
                 
-                hand_centre = [np.mean([hand_points[0][0],hand_points[1][0], hand_points[2][0]]), np.mean([hand_points[0][1], hand_points[1][1], hand_points[2][1]]), np.mean([hand_points[0][2], hand_points[1][2], hand_points[2][2]])]
-                
+                hand_centre = np.mean(hand_points, axis=0)
+                hand_centre_world = [np.mean([right_wrist, right_index], axis=0)]
+
                 normal_vector = np.cross(np.subtract(hand_points[2],hand_points[0]), np.subtract(hand_points[1], hand_points[2]))
                 normal_vector /= np.linalg.norm(normal_vector)
                 
-                right_hand_norm = np.subtract(hand_centre,right_shoulder)
-                print(right_wrist, hand_centre)
-                queue.put([right_hand_norm, normal_vector])
+                right_hand_norm = np.subtract(hand_centre_world, right_shoulder)
+
+                queue_array = np.append(right_hand_norm, normal_vector)
+                print(queue_array)
+                queue.put(queue_array)
             
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             startpoint = (int(hand_centre[0]*image_width), int(hand_centre[1]*image_height))
@@ -58,7 +63,7 @@ def pose_estimation(queue):
             image = cv2.line(image, startpoint, endpoint, color, thickness)
 
             mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)
-            mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
+            #mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
 
 
             time_now = time.time()
@@ -70,7 +75,7 @@ def pose_estimation(queue):
 
             cv2.imshow('Mediapipe pose', image)
 
-            if cv2.waitKey(5) & 0xFF ==27:
+            if cv2.waitKey(5) & 0xFF == 27:
                 break
 
     cap.release()
@@ -87,7 +92,7 @@ def writer_task(pose_queue):
                 # read the queues from BLE and Pose Estimation
 
                 pose_val = pose_queue.get()
-                writer.writerow([pose_val])
+                writer.writerow(pose_val)
                 #print(f'duration: {(time.perf_counter()-prevTime)*1000:.3f}')
             
             if 0xFF ==27:
