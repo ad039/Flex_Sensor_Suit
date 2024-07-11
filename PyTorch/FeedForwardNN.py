@@ -10,14 +10,15 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #hyper parameters
 input_size = 7
-hidden_size = 10000
+hidden_size = 5000
 num_classes = 3
 num_epochs = 10000
-learing_rate = 0.001
-start_train_time = 4
-end_train_time = 5         # min
-start_test_time = 5
-sample_frequency = 10   # Hz
+learing_rate = 0.01
+start_train_time = 1
+end_train_time = 7         # min
+start_test_time = 0
+end_test_time = 1
+sample_frequency = 6  # Hz
 
 # import train data 
 class Train_FSSData(Dataset):
@@ -25,8 +26,8 @@ class Train_FSSData(Dataset):
     def __init__(self):
         #data loading
         xy = np.loadtxt('./Pose_Estimation/output_test_5min.csv', delimiter=",", dtype=np.float32, skiprows=1)
-        self.x = torch.from_numpy(xy[start_train_time*sample_frequency*60:end_train_time*sample_frequency*60, 0:6]).to(device)
-        self.y = torch.from_numpy(xy[start_train_time*sample_frequency*60:end_train_time*sample_frequency*60, 7:9]*1000).to(device)
+        self.x = torch.from_numpy(xy[start_train_time*sample_frequency*60:end_train_time*sample_frequency*60, 0:7]).to(device)
+        self.y = torch.from_numpy(xy[start_train_time*sample_frequency*60:end_train_time*sample_frequency*60, 7:10]*1000).to(device)
         self.n_samples = xy.shape[0]
 
     def __getitem__(self, index):
@@ -44,8 +45,9 @@ class Test_FSSData(Dataset):
     def __init__(self):
         #data loading
         xy = np.loadtxt('./Pose_Estimation/output_test_5min.csv', delimiter=",", dtype=np.float32, skiprows=1)
-        self.x = torch.from_numpy(xy[start_test_time*sample_frequency*60:, 0:6]).to(device)
-        self.y = torch.from_numpy(xy[start_test_time*sample_frequency*60:, 7:9]*1000).to(device)
+        self.x = torch.from_numpy(xy[start_test_time*sample_frequency*60:end_test_time*sample_frequency*60, 0:7]).to(device)
+        
+        self.y = torch.from_numpy(xy[start_test_time*sample_frequency*60:end_test_time*sample_frequency*60, 7:10]*1000).to(device)
         self.n_samples = xy.shape[0]
 
     def __getitem__(self, index):
@@ -117,7 +119,7 @@ with torch.no_grad():
     test_y_pred_numpy = test_y_pred.cpu().numpy()
 
     # smoothing
-    alpha = 0.05
+    alpha = 1
     n_samples = np.size(test_y_pred_numpy, 0)
     i = 2
     for i in range(n_samples):
@@ -141,5 +143,10 @@ with torch.no_grad():
     ax2 = plt.axes(projection='3d')  
     ax2.plot3D(test_y_numpy[:,0], test_y_numpy[:,1], test_y_numpy[:,2])
     ax2.plot3D(test_y_pred_numpy[:,0], test_y_pred_numpy[:,1], test_y_pred_numpy[:,2])
+    ax2.set_xlabel('x (mm)')
+    ax2.set_ylabel('y (mm)')
+    ax2.set_zlabel('z (mm)')
+    ax2.legend(["Target", "Prediction"])
+
 
     plt.show()
