@@ -40,7 +40,7 @@ typedef struct {
   int16_t data[25];
 } message_sensor;
 
-Queue<message_sensor, 50> sensorQueue;
+Queue<message_sensor, 50> sensorQueue; 
 MemoryPool<message_sensor, 50> sensorMpool;
 
 EventQueue eventQueue;
