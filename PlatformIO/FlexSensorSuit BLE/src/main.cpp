@@ -9,7 +9,7 @@ using namespace events;
 #include "SparkFun_Displacement_Sensor_Arduino_Library.h" // Click here to get the library: http://librarymanager/All#SparkFun_Displacement_Sensor
 
 //define what sensors to use
-#define ADS_sensor
+//#define ADS_sensor
 
 
 ////////////////////////////////// ADS Sensors //////////////////////////////////
@@ -303,7 +303,10 @@ void BLE_init()
   flexSensorCharacteristic.setEventHandler( BLESubscribed, characteristicSubscribed);
   flexSensorCharacteristic.setEventHandler( BLEUnsubscribed, characteristicUnsubscribed);
   flexSensorCharacteristic.setEventHandler( BLERead, characteristicRead);
-
+  Serial.println("before Set conn Interval");
+  // set the connection interval from between 7.5ms to 4000ms in units of 1.25ms
+  BLE.setConnectionInterval(0x0006, 0x0006);
+  Serial.println("after Set conn Interval");
   // start advertising
   BLE.advertise();
 

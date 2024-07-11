@@ -19,7 +19,7 @@ def ble_startup(queue):
     # "29:F0:E3:F9:C9:CD" for Arduino Nano BLE
     # "93:43:92:07:91:11" for Xioa nrf52 BLE 
 
-    FlexSensorSuit = btle.Peripheral("93:43:92:07:91:11")
+    FlexSensorSuit = btle.Peripheral("29:F0:E3:F9:C9:CD")
 
     print("connected")
     FlexSensorSuit.getServices()
@@ -131,7 +131,7 @@ def writer_task(ble_queue, pose_queue):
         writer = csv.writer(f)
         writer.writerow(["ElbowFlex", "ShoulderFlex1", "ShoulderFlex2", "ShoulderFlex3", "ForearmFlex", "HandFlex1", "HandFlex2", "P_x", "P_y", "P_z", "O_x", "O_y", "O_z"])
         while True:
-            if time.perf_counter() - prevTime > 0.1:
+            if time.perf_counter() - prevTime > 0.03:
                 #print(f'loop: {(time.perf_counter()-prevTime)*1000:.3f}')
                 prevTime = time.perf_counter()
                 # read the queues from BLE and Pose Estimation
