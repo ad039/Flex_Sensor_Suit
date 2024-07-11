@@ -6,6 +6,7 @@ import numpy as np
 import threading
 from queue import Queue
 import csv
+import struct
 
 
 
@@ -14,18 +15,27 @@ def ble_startup(queue):
     global flexSensorCharValue
     print("Connecting...")
 
+    # MAC addresses for ble chips
+    # "29:F0:E3:F9:C9:CD" for Arduino Nano BLE
+    # "93:43:92:07:91:11" for Xioa nrf52 BLE 
 
-    FlexSensorSuit = btle.Peripheral("29:F0:E3:F9:C9:CD")
+    FlexSensorSuit = btle.Peripheral("93:43:92:07:91:11")
 
+    print("connected")
     FlexSensorSuit.getServices()
     flexSensorService = FlexSensorSuit.getServiceByUUID("0000fff0-0000-1000-8000-00805f9b34fb")
+    print("connected to service")
 
     flexSensorCharValue = flexSensorService.getCharacteristics()[0]
+    print("connected to characteristic")
     i = 0
     while True:
         val = flexSensorCharValue.read()
+        val = struct.unpack("<hhhhhhh",val)
+        #print(val)
         queue.put(val)
-        i += 1
+        i+= 1
+        
         
 
 
@@ -37,7 +47,7 @@ def pose_estimation(queue):
     cap = cv2.VideoCapture(0)
 
     time_prev = 0
-
+    i = 0
     with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5, model_complexity=2) as holistic:
         
         while cap.isOpened():
@@ -76,6 +86,7 @@ def pose_estimation(queue):
                 queue_array = np.append(right_hand_norm, normal_vector)
                 #print(queue_array)
                 queue.put(queue_array)
+                i+=1
             
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             startpoint = (int(hand_centre[0]*image_width), int(hand_centre[1]*image_height))
@@ -116,9 +127,9 @@ def pose_estimation(queue):
 
 def writer_task(ble_queue, pose_queue):
     prevTime = 0.0
-    with open('Pose Estimation/output.csv', 'w', newline='') as f:
+    with open('Pose_Estimation/output.csv', 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(["Bluetooth", "P_x", "P_y", "P_z", "O_x", "O_y", "O_z"])
+        writer.writerow(["ElbowFlex", "ShoulderFlex1", "ShoulderFlex2", "ShoulderFlex3", "ForearmFlex", "HandFlex1", "HandFlex2", "P_x", "P_y", "P_z", "O_x", "O_y", "O_z"])
         while True:
             if time.perf_counter() - prevTime > 0.1:
                 #print(f'loop: {(time.perf_counter()-prevTime)*1000:.3f}')
@@ -126,8 +137,9 @@ def writer_task(ble_queue, pose_queue):
                 # read the queues from BLE and Pose Estimation
                 ble_val = ble_queue.get()
                 pose_val = pose_queue.get()
-                queue_val = np.append(ble_val, pose_val)
-                writer.writerow([ble_val, pose_val])
+                queue_val = np.append(np.divide(ble_val,100), pose_val)
+                #print(queue_val)
+                writer.writerow(queue_val)
                 #print(f'duration: {(time.perf_counter()-prevTime)*1000:.3f}')
 
 

@@ -9,7 +9,7 @@ using namespace events;
 #include "SparkFun_Displacement_Sensor_Arduino_Library.h" // Click here to get the library: http://librarymanager/All#SparkFun_Displacement_Sensor
 
 //define what sensors to use
-//#define ADS_sensor
+#define ADS_sensor
 
 
 ////////////////////////////////// ADS Sensors //////////////////////////////////
