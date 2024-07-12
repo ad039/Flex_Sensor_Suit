@@ -20,7 +20,7 @@ The repository is broken into three sections:
 ### PlatformIO
 The PlatformIO folder houses the c++ code for an mbed nrf52 microconrtoller such as the Arduino nano 33 BLE or the Seeed Xiao BLE. To run the program, platformIO will need to be installed on Visual Studio Code
 
-### Pose_Estiamtion
+### Pose_Estimation
 In the Pose Estimation folder are python scripts to generate pose landmarks using the mediapipe pose framework, python scripts to communicate with the Arduino nano 33 BLE or Seeed Xiao BLE and a script to perform both operations.
 
 ### PyTorch
