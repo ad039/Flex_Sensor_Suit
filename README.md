@@ -13,9 +13,9 @@ pip install -r "requirements.txt"
 ```
 
 The repository is broken into three sections:
-- PlatformIO
-- Pose_Estimation
-- PyTorch
+- [PlatformIO](https://github.com/ad039/Flex_Sensor_Suit#platformio)
+- [Pose_Estimation](https://github.com/ad039/Flex_Sensor_Suit#pose_estimation)
+- [PyTorch](https://github.com/ad039/Flex_Sensor_Suit#pytorch)
 
 ### PlatformIO
 The PlatformIO folder houses the c++ code for an mbed nrf52 microconrtoller such as the Arduino nano 33 BLE or the Seeed Xiao BLE. To run the program, platformIO will need to be installed on Visual Studio Code
