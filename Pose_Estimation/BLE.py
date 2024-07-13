@@ -8,7 +8,7 @@ import time
 
 print("Connecting...")
 
-FlexSensorSuit = btle.Peripheral("93:43:92:07:91:11")
+FlexSensorSuit = btle.Peripheral("29:F0:E3:F9:C9:CD")
 
 print("connected")
 FlexSensorSuit.getServices()
@@ -21,8 +21,8 @@ i = 0
 prevTime = 0.0
 
 while True:
-    if time.perf_counter() - prevTime > 0.03:
-        #print(f'loop: {(time.perf_counter()-prevTime)*1000:.3f}')
+    if time.perf_counter() - prevTime > 0.0:
+        print(f'loop: {(time.perf_counter()-prevTime)*1000:.3f}')
         prevTime = time.perf_counter()
         val = flexSensorCharValue.read()
         val = struct.unpack("<hhhhhhh",val)

@@ -9,7 +9,7 @@ using namespace events;
 #include "SparkFun_Displacement_Sensor_Arduino_Library.h" // Click here to get the library: http://librarymanager/All#SparkFun_Displacement_Sensor
 
 //define what sensors to use
-#define ADS_sensor
+//#define ADS_sensor
 
 
 ////////////////////////////////// ADS Sensors //////////////////////////////////
@@ -348,7 +348,7 @@ void blePeripheralConnectHandler(BLEDevice central) {
   Serial.println(central.address());
   digitalWrite(LED_BUILTIN, LOW);
   // change the BLE update interval to every 5ms
-  BLE_UPDATE_INTERVAL = 5; //ms
+  BLE_UPDATE_INTERVAL = 3.75; //ms
   
   //connectionStatus = 1;
 }
