@@ -104,7 +104,7 @@ def pose_estimation(queue):
             time_prev = time_now
             fps = 1 / totalTime
             
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            #image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
 
             mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)
@@ -143,7 +143,16 @@ def writer_task(ble_queue, pose_queue):
                 #print(f'duration: {(time.perf_counter()-prevTime)*1000:.3f}')
 
 
-
+def do_every(period,f,*args):
+    def g_tick():
+        t = time.time()
+        while True:
+            t += period
+            yield max(t - time.time(),0)
+    g = g_tick()
+    while True:
+        time.sleep(next(g))
+        f(*args)
 
 
 if __name__ == "__main__":
@@ -153,7 +162,7 @@ if __name__ == "__main__":
 
     ble_thread = threading.Thread(target=ble_startup, args=(ble_q,))
     pose_estimation_thread = threading.Thread(target=pose_estimation, args=(pose_q,))
-    writer_thread = threading.Thread(target=writer_task, args=(ble_q,pose_q))
+    writer_thread = threading.Thread(target=do_every, args=(0.05, writer_task, ble_q,pose_q))
 
     
     ble_thread.start()

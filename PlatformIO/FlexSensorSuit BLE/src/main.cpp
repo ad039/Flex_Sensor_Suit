@@ -82,6 +82,8 @@ void blePeripheralDisconnectHandler(BLEDevice central);
 
 void BLE_init(void);
 
+int counter = 0;
+
 ////////////////////////////////// Setup //////////////////////////////////
 void setup()
 {
@@ -197,14 +199,25 @@ void sensorTask()
 
   // for debugging ble
 #ifndef ADS_sensor
-
-  sensorMessage->data[0] = 0x0000;
-  sensorMessage->data[1] = 0x0001;
-  sensorMessage->data[2] = 0x0002;
-  sensorMessage->data[3] = 0x0003;
-  sensorMessage->data[4] = 0x0004;
-  sensorMessage->data[5] = 0x0005;
-  sensorMessage->data[6] = 0x0006;
+  if (counter == 1){
+    sensorMessage->data[0] = 0x0000;
+    sensorMessage->data[1] = 0x0001;
+    sensorMessage->data[2] = 0x0002;
+    sensorMessage->data[3] = 0x0003;
+    sensorMessage->data[4] = 0x0004;
+    sensorMessage->data[5] = 0x0005;
+    sensorMessage->data[6] = 0x0006;
+  }
+  if (counter == 0) {
+    sensorMessage->data[0] = 0x0001;
+    sensorMessage->data[1] = 0x0001;
+    sensorMessage->data[2] = 0x0002;
+    sensorMessage->data[3] = 0x0003;
+    sensorMessage->data[4] = 0x0004;
+    sensorMessage->data[5] = 0x0005;
+    sensorMessage->data[6] = 0x0006;
+  }
+  //Serial.print(counter);
   
   delay(2);
   
@@ -305,7 +318,7 @@ void BLE_init()
   flexSensorCharacteristic.setEventHandler( BLERead, characteristicRead);
   
   // set the connection interval from between 7.5ms to 4000ms in units of 1.25ms
-  BLE.setConnectionInterval(0x0006, 0x0006);
+  BLE.setConnectionInterval(0x0008, 0x0008);
 
   // start advertising
   BLE.advertise();
@@ -321,6 +334,13 @@ void characteristicRead(BLEDevice central, BLECharacteristic thisChar) {
   // Read if central asks, queue a new sensorTask event to be excecuted in the bleThread
   Serial.println("Characteristic Read");
   eventQueue.call(sensorTask);
+
+  if (counter == 1) {
+    counter = 0;
+  }
+  else {
+    counter = 1;
+  }
 }
 
 void characteristicSubscribed(BLEDevice central, BLECharacteristic thisChar) {
@@ -348,7 +368,7 @@ void blePeripheralConnectHandler(BLEDevice central) {
   Serial.println(central.address());
   digitalWrite(LED_BUILTIN, LOW);
   // change the BLE update interval to every 5ms
-  BLE_UPDATE_INTERVAL = 3.75; //ms
+  BLE_UPDATE_INTERVAL = 5; //ms
   
   //connectionStatus = 1;
 }
