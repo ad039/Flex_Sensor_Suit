@@ -5,7 +5,7 @@ import pandas
 ax = plt.figure().add_subplot(projection='3d')
 
 # Prepare arrays x, y, z
-data_csv = pandas.read_csv('Pose_Estimation/output_test_5min.csv', usecols=["P_x", "P_y", "P_z"])
+data_csv = pandas.read_csv('Pose_Estimation/output.csv', usecols=["P_x", "P_y", "P_z"])
 
 print(data_csv.P_x)
 
