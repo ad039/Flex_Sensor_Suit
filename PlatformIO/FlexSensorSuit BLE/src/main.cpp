@@ -11,6 +11,9 @@ using namespace events;
 //define what sensors to use
 //#define ADS_sensor
 
+// define debug mode
+//#define DEBUG
+
 
 ////////////////////////////////// ADS Sensors //////////////////////////////////
 #ifdef ADS_sensor
@@ -57,7 +60,7 @@ Ticker ticker;
 
 void ISRCallback(void);
 
-std::chrono::milliseconds Ts(20);      //sensor sampling time in ms 
+std::chrono::milliseconds Ts(10);      //sensor sampling time in ms 
 
 ////////////////////////////////// BLE //////////////////////////////////
 BLEService flexSensorService("0000fff0-0000-1000-8000-00805f9b34fb");
@@ -139,9 +142,11 @@ void watchdogTask() {
   {
     NRF_WDT->RR[0] = WDT_RR_RR_Reload;
 
+#ifdef DEBUG
     stdio_mutex.lock();
     Serial.println("W ");
     stdio_mutex.unlock();
+#endif
 
     thread_sleep_for(500);
   }
@@ -175,13 +180,15 @@ void bleTask()
       sensorMpool.free(sensorMessage);
     }
 
-
+#ifdef DEBUG
     stdio_mutex.lock();
     Serial.print("B ");
     Serial.print(Kernel::get_ms_count()-currentMillis);
     Serial.print(" ");
     Serial.println(bleThread.max_stack());
     stdio_mutex.unlock();
+#endif
+
     // sleep this thread for the update interval minus the millis spent in this thread
     thread_sleep_until(currentMillis + BLE_UPDATE_INTERVAL);
   }
@@ -192,7 +199,7 @@ void bleTask()
 
 void sensorTask() 
 {
-  uint32_t currentMillis = Kernel::get_ms_count(); 
+  //uint32_t currentMillis = Kernel::get_ms_count(); 
 
   message_sensor *sensorMessage = sensorMpool.try_alloc();
   sensorMessage->data[0] = 0x0001;
@@ -217,7 +224,13 @@ void sensorTask()
     sensorMessage->data[5] = 0x0005;
     sensorMessage->data[6] = 0x0006;
   }
-  //Serial.print(counter);
+
+  if (counter == 1) {
+    counter = 0;
+  }
+  else {
+    counter = 1;
+  }
   
   delay(2);
   
@@ -265,10 +278,12 @@ void sensorTask()
 
   sensorQueue.try_put(sensorMessage);
 
+#ifdef DEBUG
   stdio_mutex.lock();
   Serial.print("S ");
   Serial.println(rtos::Kernel::get_ms_count()-currentMillis);
   stdio_mutex.unlock();
+#endif
 
   //thread_sleep_for(10);
 }
@@ -290,12 +305,13 @@ void ISRCallback(void)
 */
 void BLE_init() 
 {
-    if (!BLE.begin()) {
-    Serial.println("* Starting Bluetooth® Low Energy module failed!");
-      while (1) {
-        ;
-      }
+  if (!BLE.begin()) {
+  Serial.println("* Starting Bluetooth® Low Energy module failed!");
+    while (1) {
+      ;
     }
+  }
+  
   
   // set the local name peripheral advertises
   BLE.setLocalName("FlexSensorSuit");
@@ -307,7 +323,7 @@ void BLE_init()
   // add the service
   BLE.addService(flexSensorService);
   
-  flexSensorCharacteristic.writeValue((byte)0x00, 48);
+  flexSensorCharacteristic.writeValue((byte)0x00, 14);
 
   // set BLE event handlers
   BLE.setEventHandler( BLEConnected,  blePeripheralConnectHandler);
@@ -318,7 +334,7 @@ void BLE_init()
   flexSensorCharacteristic.setEventHandler( BLERead, characteristicRead);
   
   // set the connection interval from between 7.5ms to 4000ms in units of 1.25ms
-  BLE.setConnectionInterval(0x0008, 0x0008);
+  BLE.setConnectionInterval(0x0008, 0x0008); // 10ms
 
   // start advertising
   BLE.advertise();
@@ -335,12 +351,7 @@ void characteristicRead(BLEDevice central, BLECharacteristic thisChar) {
   Serial.println("Characteristic Read");
   eventQueue.call(sensorTask);
 
-  if (counter == 1) {
-    counter = 0;
-  }
-  else {
-    counter = 1;
-  }
+  
 }
 
 void characteristicSubscribed(BLEDevice central, BLECharacteristic thisChar) {
@@ -368,7 +379,7 @@ void blePeripheralConnectHandler(BLEDevice central) {
   Serial.println(central.address());
   digitalWrite(LED_BUILTIN, LOW);
   // change the BLE update interval to every 5ms
-  BLE_UPDATE_INTERVAL = 5; //ms
+  BLE_UPDATE_INTERVAL = 3; //ms
   
   //connectionStatus = 1;
 }
