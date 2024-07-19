@@ -9,7 +9,7 @@ using namespace events;
 #include "SparkFun_Displacement_Sensor_Arduino_Library.h" // Click here to get the library: http://librarymanager/All#SparkFun_Displacement_Sensor
 
 //define what sensors to use
-//#define ADS_sensor
+#define ADS_sensor
 
 // define debug mode
 //#define DEBUG
@@ -348,9 +348,10 @@ void BLE_init()
 
 void characteristicRead(BLEDevice central, BLECharacteristic thisChar) {
   // Read if central asks, queue a new sensorTask event to be excecuted in the bleThread
+#ifdef DEBUG
   Serial.println("Characteristic Read");
   eventQueue.call(sensorTask);
-
+#endif
   
 }
 
