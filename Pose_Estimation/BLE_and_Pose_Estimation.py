@@ -19,7 +19,7 @@ def ble_startup(queue):
     # "29:F0:E3:F9:C9:CD" for Arduino Nano BLE
     # "93:43:92:07:91:11" for Xioa nrf52 BLE 
 
-    FlexSensorSuit = btle.Peripheral("29:F0:E3:F9:C9:CD")
+    FlexSensorSuit = btle.Peripheral("93:43:92:07:91:11")
 
     print("connected")
     FlexSensorSuit.getServices()
@@ -44,7 +44,7 @@ def pose_estimation(queue):
     mp_pose = mp.solutions.pose
     mp_drawing = mp.solutions.drawing_utils
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(2)
 
     time_prev = 0
     i = 0

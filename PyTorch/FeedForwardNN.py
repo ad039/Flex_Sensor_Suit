@@ -7,27 +7,37 @@ import math
 
 # device onfig
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(device)
 
 #hyper parameters
 input_size = 7
-hidden_size = 1000
+hidden_size = 10000
 num_classes = 3
 num_epochs = 1000
-learing_rate = 0.1
-start_train_time = 1
-end_train_time = 7         # min
-start_test_time = 0
-end_test_time = 1
-sample_frequency = 6  # Hz
+learing_rate = 0.01
+start_train_time = 4
+end_train_time = 4.5        # min
+start_test_time = 4
+end_test_time = 4.5
+sample_frequency = 13  # Hz
 
 # import train data 
 class Train_FSSData(Dataset):
 
     def __init__(self):
         #data loading
-        xy = np.loadtxt('./Pose_Estimation/output_test_5min.csv', delimiter=",", dtype=np.float32, skiprows=1)
-        self.x = torch.from_numpy(xy[start_train_time*sample_frequency*60:end_train_time*sample_frequency*60, 0:7]).to(device)
-        self.y = torch.from_numpy(xy[start_train_time*sample_frequency*60:end_train_time*sample_frequency*60, 7:10]*1000).to(device)
+        xy = np.loadtxt('./Pose_Estimation/output_test_5min_2.csv', delimiter=",", dtype=np.float32, skiprows=1)
+        
+        # smoothing
+        alpha = 0.1
+        n_samples = np.size(xy, 0)
+        i = 2
+        for i in range(n_samples):
+            xy[i,7:10] = (alpha)*xy[i,7:10] + (1-alpha)*xy[i-1,7:10]
+        
+        self.x = torch.from_numpy(xy[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), 0:7]).to(device)
+        self.y = torch.from_numpy(xy[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), 7:10]*1000).to(device)
+        print(self.x, self.y)
         self.n_samples = xy.shape[0]
 
     def __getitem__(self, index):
@@ -44,10 +54,19 @@ class Test_FSSData(Dataset):
 
     def __init__(self):
         #data loading
-        xy = np.loadtxt('./Pose_Estimation/output_test_5min.csv', delimiter=",", dtype=np.float32, skiprows=1)
-        self.x = torch.from_numpy(xy[start_test_time*sample_frequency*60:end_test_time*sample_frequency*60, 0:7]).to(device)
-        
-        self.y = torch.from_numpy(xy[start_test_time*sample_frequency*60:end_test_time*sample_frequency*60, 7:10]*1000).to(device)
+        xy = np.loadtxt('./Pose_Estimation/output_test_5min_2.csv', delimiter=",", dtype=np.float32, skiprows=1)
+
+        # smoothing
+        alpha = 0.1
+        n_samples = np.size(xy, 0)
+        i = 2
+        for i in range(n_samples):
+            xy[i,7:10] = (alpha)*xy[i,7:10] + (1-alpha)*xy[i-1,7:10]
+
+
+        self.x = torch.from_numpy(xy[round(start_test_time*sample_frequency*60):round(end_test_time*sample_frequency*60), 0:7]).to(device)
+        self.y = torch.from_numpy(xy[round(start_test_time*sample_frequency*60):round(end_test_time*sample_frequency*60), 7:10]*1000).to(device)
+        print(self.x, self.y)
         self.n_samples = xy.shape[0]
 
     def __getitem__(self, index):
@@ -77,11 +96,11 @@ class NeuralNet(nn.Module):
     
     def forward(self, x):
         out = self.l1(x)
-        out = self.lrelu(out)
+        #out = self.lrelu(out)
         #out = self.lrelu(out)
         out = self.tanh(out)
-        #out = self.tanh(out)
-        out = self.relu(out)
+        out = self.tanh(out)
+        #out = self.relu(out)
         #out = self.relu(out)
         out = self.l2(out)
         return out
@@ -119,7 +138,7 @@ with torch.no_grad():
     test_y_pred_numpy = test_y_pred.cpu().numpy()
 
     # smoothing
-    alpha = 1
+    alpha = 0.3
     n_samples = np.size(test_y_pred_numpy, 0)
     i = 2
     for i in range(n_samples):
