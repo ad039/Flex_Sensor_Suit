@@ -350,9 +350,8 @@ void characteristicRead(BLEDevice central, BLECharacteristic thisChar) {
   // Read if central asks, queue a new sensorTask event to be excecuted in the bleThread
 #ifdef DEBUG
   Serial.println("Characteristic Read");
-  eventQueue.call(sensorTask);
 #endif
-  
+  eventQueue.call(sensorTask); 
 }
 
 void characteristicSubscribed(BLEDevice central, BLECharacteristic thisChar) {
