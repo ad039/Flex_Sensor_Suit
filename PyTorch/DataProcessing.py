@@ -8,7 +8,7 @@ BLESensorData = pd.read_csv('./PyTorch/output_test_motion_cap.csv')
 ElbowY = MotionCaptureData.loc[:,"Arm:Hand TopY"].to_numpy()
 shoulderFlex1 = BLESensorData.ShoulderFlex1.to_numpy()
 
-
+plt.figure()
 plt.plot(ElbowY)
 plt.plot(shoulderFlex1)
 plt.legend(["Motion Cap Arm:Hand TopY", "ShoulderFlex2"])
@@ -18,7 +18,8 @@ points = plt.ginput(2)
 dif = points[0][0]-points[1][0]
 print(dif)
 
-plt.plot(ElbowY[round(dif):len(ElbowY)])
+plt.figure()
+plt.plot(ElbowY[round(dif):])
 plt.plot(shoulderFlex1)
 plt.show()
 
