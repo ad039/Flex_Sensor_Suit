@@ -5,9 +5,21 @@ import matplotlib.pyplot as plt
 MotionCaptureData = pd.read_csv('./PyTorch/Alex_Motion_Cap_1_edited.csv', skiprows=2, skip_blank_lines=0,na_values=[''])
 BLESensorData = pd.read_csv('./PyTorch/output_test_motion_cap.csv')
 
-plt.plot(MotionCaptureData.loc[:,"Arm:Hand TopY"])
-plt.plot(BLESensorData.ShoulderFlex1)
-plt.legend(["Motion Cap", "ShoulderFlex2"])
+ElbowY = MotionCaptureData.loc[:,"Arm:Hand TopY"].to_numpy()
+shoulderFlex1 = BLESensorData.ShoulderFlex1.to_numpy()
+
+
+plt.plot(ElbowY)
+plt.plot(shoulderFlex1)
+plt.legend(["Motion Cap Arm:Hand TopY", "ShoulderFlex2"])
+#plt.show()
+points = plt.ginput(2)
+
+dif = points[0][0]-points[1][0]
+print(dif)
+
+plt.plot(ElbowY[round(dif):len(ElbowY)])
+plt.plot(shoulderFlex1)
 plt.show()
 
 #.to_csv('./PyTorch/Alex_Motion_Cap_Formatted.csv')
