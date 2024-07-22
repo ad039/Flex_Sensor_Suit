@@ -10,7 +10,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #hyper parameters
 input_size = 7
-hidden_size = 1000
+hidden_size = 10000
 num_classes = 3
 num_epochs = 1000
 learing_rate = 0.1
