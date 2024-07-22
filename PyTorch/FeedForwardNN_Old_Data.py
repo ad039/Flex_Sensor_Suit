@@ -10,18 +10,17 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #hyper parameters
 input_size = 7
-hidden_size = 5000
+hidden_size = 1000
 num_classes = 3
 num_epochs = 10000
 learing_rate = 0.001
 start_train_time = 0
 end_train_time = 5       # min
 start_test_time = 5.5
-end_test_time = 6
-sample_frequency = 100  # Hz
+end_test_time = 6.8
+sample_frequency = 60  # Hz
 
 
-# Circle 5.5-6 min
 # Box 5-5.5 min
 
 # import train data 
@@ -29,16 +28,12 @@ class Train_FSSData(Dataset):
 
     def __init__(self):
         #data loading
-        xy = np.loadtxt('./PyTorch/Alex_Motion_Cap_Formatted.csv', delimiter=",", dtype=np.float32, skiprows=1)
+        xy = np.loadtxt('./PyTorch/data/Flex_Sensor_Suit_Data.csv', delimiter=",", dtype=np.float32, skiprows=1)
         
         self.n_samples = xy.shape[0]
        
-        hand_centre = np.column_stack((np.mean([xy[:,6], xy[:,9], xy[:,12]], axis=0), np.mean([xy[:,7], xy[:,10], xy[:,13]], axis=0), np.mean([xy[:,8], xy[:,11], xy[:,14]], axis=0)))
-        shoulder_centre = np.column_stack((np.mean([xy[:,15], xy[:,18], xy[:,21]], axis=0), np.mean([xy[:,16], xy[:,19], xy[:,22]], axis=0), np.mean([xy[:,17], xy[:,20], xy[:,23]], axis=0)))
-        hand_normalized = np.subtract(hand_centre, shoulder_centre)
-
-        self.x = torch.from_numpy(xy[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), 25:32]).to(device)
-        self.y = torch.from_numpy(hand_normalized[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), :]).to(device)
+        self.x = torch.from_numpy(xy[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), 59:66]).to(device)
+        self.y = torch.from_numpy(xy[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), 94:97]*1000).to(device)
         #print(self.x, self.y)
         
         
@@ -57,16 +52,12 @@ class Test_FSSData(Dataset):
 
     def __init__(self):
         #data loading
-        xy = np.loadtxt('./PyTorch/Alex_Motion_Cap_Formatted.csv', delimiter=",", dtype=np.float32, skiprows=1)
+        xy = np.loadtxt('./PyTorch/data/Flex_Sensor_Suit_Data.csv', delimiter=",", dtype=np.float32, skiprows=1)
 
         self.n_samples = xy.shape[0]
         
-        hand_centre = np.column_stack((np.mean([xy[:,6], xy[:,9], xy[:,12]], axis=0), np.mean([xy[:,7], xy[:,10], xy[:,13]], axis=0), np.mean([xy[:,8], xy[:,11], xy[:,14]], axis=0)))
-        shoulder_centre = np.column_stack((np.mean([xy[:,15], xy[:,18], xy[:,21]], axis=0), np.mean([xy[:,16], xy[:,19], xy[:,22]], axis=0), np.mean([xy[:,17], xy[:,20], xy[:,23]], axis=0)))
-        hand_normalized = np.subtract(hand_centre, shoulder_centre)
-
-        self.x = torch.from_numpy(xy[round(start_test_time*sample_frequency*60):round(end_test_time*sample_frequency*60), 25:32]).to(device)
-        self.y = torch.from_numpy(hand_normalized[round(start_test_time*sample_frequency*60):round(end_test_time*sample_frequency*60), :]).to(device)
+        self.x = torch.from_numpy(xy[round(start_test_time*sample_frequency*60):round(end_test_time*sample_frequency*60), 59:66]).to(device)
+        self.y = torch.from_numpy(xy[round(start_test_time*sample_frequency*60):round(end_test_time*sample_frequency*60), 94:97]*1000).to(device)
         #print(self.x, self.y)
 
 
@@ -109,7 +100,7 @@ class NeuralNet(nn.Module):
 model = NeuralNet(input_size, hidden_size, num_classes).to(device)
 
 # loss and optimzer
-criterion = nn.L1Loss()
+criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=learing_rate)
 
 
@@ -143,12 +134,10 @@ with torch.no_grad():
     n_samples = np.size(test_y_pred_numpy, 0)
     i = 2
     test_y_pred_numpy_smoothed = np.zeros_like(test_y_pred_numpy)
-    test_y_pred_numpy_smoothed[0,:] = test_y_pred_numpy[0,:]
     test_y_pred_numpy_smoothed[1,:] = test_y_pred_numpy[1,:]
-    test_y_pred_numpy_smoothed[2,:] = test_y_pred_numpy[2,:]
 
     for i in range(2, n_samples):
-        test_y_pred_numpy_smoothed[i,:] = (alpha)*test_y_pred_numpy[i,:] + (1-alpha)*test_y_pred_numpy_smoothed[i-1,:]
+        test_y_pred_numpy_smoothed[i,:] = (alpha)*test_y_pred_numpy_smoothed[i,:] + (1-alpha)*test_y_pred_numpy_smoothed[i-1,:]
 
 
     # calculate RMSE
