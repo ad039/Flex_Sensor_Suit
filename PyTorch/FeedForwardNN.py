@@ -139,7 +139,7 @@ with torch.no_grad():
     test_y_pred_numpy = test_y_pred.cpu().numpy()
 
     # smoothing
-    alpha = 0.01
+    alpha = 0.1
     n_samples = np.size(test_y_pred_numpy, 0)
     i = 2
     test_y_pred_numpy_smoothed = np.zeros_like(test_y_pred_numpy)
