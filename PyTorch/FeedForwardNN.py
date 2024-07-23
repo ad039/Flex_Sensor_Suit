@@ -15,11 +15,11 @@ hidden_size = 10000
 num_classes = 3
 num_epochs = 10000
 learing_rate = 0.0001
-start_train_time = 3
+start_train_time = 0
 end_train_time = 4    # min
 start_test_time = 5.5
 end_test_time = 6
-sample_frequency = 100  # Hz
+sample_frequency = 25 # Hz
 
 
 # Circle 5.5-6 min
@@ -32,15 +32,17 @@ class Train_FSSData(Dataset):
         #data loading
         xy = np.loadtxt('./PyTorch/Alex_Motion_Cap_Formatted.csv', delimiter=",", dtype=np.float32, skiprows=1)
         
+        xy = xy[0:xy.shape[0]:4, :] # downsample
+
         self.n_samples = xy.shape[0]
        
         hand_centre = np.column_stack((np.mean([xy[:,6], xy[:,9], xy[:,12]], axis=0), np.mean([xy[:,7], xy[:,10], xy[:,13]], axis=0), np.mean([xy[:,8], xy[:,11], xy[:,14]], axis=0)))
         shoulder_centre = np.column_stack((np.mean([xy[:,15], xy[:,18], xy[:,21]], axis=0), np.mean([xy[:,16], xy[:,19], xy[:,22]], axis=0), np.mean([xy[:,17], xy[:,20], xy[:,23]], axis=0)))
         hand_shoulder_origin = np.subtract(hand_centre, shoulder_centre)
 
-        self.x = torch.from_numpy(xy[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), 25:32]/360)
-        self.y = torch.from_numpy(hand_shoulder_origin[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), :]/1000)
-        #print(self.x, self.y)
+        self.x = torch.from_numpy(xy[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), 25:32]).type(torch.int)
+        self.y = torch.from_numpy(hand_shoulder_origin[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), :]).type(torch.int)
+        print(self.x, self.y)
         
     def __getitem__(self, index):
         return self.x[index], self.y[index]
@@ -56,7 +58,8 @@ class Test_FSSData(Dataset):
         #data loading
         xy = np.loadtxt('./PyTorch/Alex_Motion_Cap_Formatted.csv', delimiter=",", dtype=np.float32, skiprows=1)
 
-        
+        xy = xy[0:xy.shape[0]:4, :] # downsample
+
         
         hand_centre = np.column_stack((np.mean([xy[:,6], xy[:,9], xy[:,12]], axis=0), np.mean([xy[:,7], xy[:,10], xy[:,13]], axis=0), np.mean([xy[:,8], xy[:,11], xy[:,14]], axis=0)))
         shoulder_centre = np.column_stack((np.mean([xy[:,15], xy[:,18], xy[:,21]], axis=0), np.mean([xy[:,16], xy[:,19], xy[:,22]], axis=0), np.mean([xy[:,17], xy[:,20], xy[:,23]], axis=0)))
@@ -65,8 +68,8 @@ class Test_FSSData(Dataset):
         self.n_samples = hand_shoulder_origin.shape[0]
         #print(self.n_samples)
 
-        self.x = torch.from_numpy(xy[round(start_test_time*sample_frequency*60):round(end_test_time*sample_frequency*60), 25:32]/360)
-        self.y = torch.from_numpy(hand_shoulder_origin[round(start_test_time*sample_frequency*60):round(end_test_time*sample_frequency*60), :])
+        self.x = torch.from_numpy(xy[round(start_test_time*sample_frequency*60):round(end_test_time*sample_frequency*60), 25:32]).type(torch.int)
+        self.y = torch.from_numpy(hand_shoulder_origin[round(start_test_time*sample_frequency*60):round(end_test_time*sample_frequency*60), :]).type(torch.int)
         #print(self.x, self.y)
 
     def __getitem__(self, index):
@@ -94,17 +97,18 @@ class NeuralNet(nn.Module):
         self.l2 = nn.Linear(hidden_size, num_classes)
     
     def forward(self, x):
+        x = x.type(torch.float32)
         out = self.l1(x)
         out = self.lrelu(out)
         out = self.lrelu(out)
         out = self.lrelu(out)
         out = self.lrelu(out)
-        out = self.lrelu(out)
-        out = self.lrelu(out)
+        #out = self.lrelu(out)
+        #out = self.lrelu(out)
         #out = self.tanh(out)
         #out = self.tanh(out)
-        #out = self.relu(out)
-        #out = self.relu(out)
+        out = self.relu(out)
+        out = self.relu(out)
         out = self.l2(out)
         return out
 
@@ -142,7 +146,7 @@ for epoch in range(num_epochs):
 
 # test
 with torch.no_grad():
-    test_y_pred = model(test_x.to(device))*1000
+    test_y_pred = model(test_x.to(device))
 
     test_y_numpy = test_y.cpu().numpy()
     test_y_pred_numpy = test_y_pred.cpu().numpy()
