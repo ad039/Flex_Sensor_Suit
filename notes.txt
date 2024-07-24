@@ -1,0 +1,3 @@
+physics informed neural network
+ - test if your system is "physical"
+ - what models could I have for human movement?
