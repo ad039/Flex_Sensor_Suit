@@ -15,8 +15,8 @@ hidden_size = 10000
 num_classes = 3
 num_epochs = 10000
 learing_rate = 0.0001
-start_train_time = 0
-end_train_time = 4    # min
+start_train_time = 5.5
+end_train_time = 6    # min
 start_test_time = 5.5
 end_test_time = 6
 sample_frequency = 25 # Hz
@@ -39,6 +39,8 @@ class Train_FSSData(Dataset):
         hand_centre = np.column_stack((np.mean([xy[:,6], xy[:,9], xy[:,12]], axis=0), np.mean([xy[:,7], xy[:,10], xy[:,13]], axis=0), np.mean([xy[:,8], xy[:,11], xy[:,14]], axis=0)))
         shoulder_centre = np.column_stack((np.mean([xy[:,15], xy[:,18], xy[:,21]], axis=0), np.mean([xy[:,16], xy[:,19], xy[:,22]], axis=0), np.mean([xy[:,17], xy[:,20], xy[:,23]], axis=0)))
         hand_shoulder_origin = np.subtract(hand_centre, shoulder_centre)
+        hand_shoulder_origin = np.around(hand_shoulder_origin/5, decimals=0)*5 # round tothe nearest 5 for training
+
 
         self.x = torch.from_numpy(xy[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), 25:32]).type(torch.int)
         self.y = torch.from_numpy(hand_shoulder_origin[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), :]).type(torch.int)
@@ -139,10 +141,10 @@ for epoch in range(num_epochs):
     optimizer.zero_grad()
 
     # add stuff to progress bar in the end
-    pbar.set_description(f"Epoch [{epoch}/{num_epochs}]")
+    #pbar.set_description(f"Epoch [{epoch}/{num_epochs}]")
     pbar.update()
     pbar.set_postfix(loss=loss.item())
-
+pbar.close()
 
 # test
 with torch.no_grad():
