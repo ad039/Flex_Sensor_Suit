@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-MotionCaptureData = pd.read_csv('./PyTorch/Alextest_edited.csv', skiprows=2, skip_blank_lines=0,na_values=[''])
+MotionCaptureData = pd.read_csv('./PyTorch/ALEX_MOTION_CAP_DATA_TRAIN_NEW.csv', skiprows=2, skip_blank_lines=0,na_values=[''])
 BLESensorData = pd.read_csv('./PyTorch/output_test_motion_cap_2.csv')
 
 print(MotionCaptureData)
