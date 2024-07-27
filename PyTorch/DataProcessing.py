@@ -2,20 +2,28 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-MotionCaptureData = pd.read_csv('./PyTorch/ALEX_MOTION_CAP_DATA_TRAIN_NEW(in).csv', header=[0,1,2], skiprows=1, skip_blank_lines=0,na_values=[''])
-BLESensorData = pd.read_csv('./PyTorch/output_test_motion_cap.csv')
+MotionCaptureData = pd.read_csv('./PyTorch/data/ALEX_MOTION_CAP_DATA_TRAIN_NEW(in).csv', header=[0,1,2], skiprows=1, skip_blank_lines=0,na_values=[''])
+BLESensorData = pd.read_csv('./PyTorch/data/output_test_motion_cap.csv')
 
 print(MotionCaptureData)
 LABEL = MotionCaptureData.columns.tolist()[6]
 print(LABEL)
 ElbowY = MotionCaptureData.loc[:,('Arm:Elbow', 'Position', 'Y')].to_numpy()
+ElbowX = MotionCaptureData.loc[:,('Arm:Elbow', 'Position', 'X')].to_numpy()
+ElbowZ = MotionCaptureData.loc[:,('Arm:Elbow', 'Position', 'Z')].to_numpy()
 shoulderFlex2 = BLESensorData.ShoulderFlex2.to_numpy()
+shoulderFlex3 = BLESensorData.ShoulderFlex3.to_numpy()
+shoulderFlex1 = BLESensorData.ShoulderFlex1.to_numpy()
 
 fig1 = plt.figure()
 ax1 = plt.axes()
 ax1.plot(ElbowY[:2000])
+ax1.plot(ElbowX[:2000])
+ax1.plot(ElbowZ[:2000])
 ax1.plot(shoulderFlex2[:2000])
-ax1.legend(["Motion Cap Arm:Elbow Y", "ShoulderFlex2"])
+ax1.plot(shoulderFlex3[:2000])
+ax1.plot(shoulderFlex1[:2000])
+ax1.legend(["Motion Cap Elbow Y", "Motion Cap Elbow X", "Motion Cap Elbow Z", "ShoulderFlex2", "ShoulderFlex3", "ShoulderFlex1"])
 #plt.show()
 points = plt.ginput(2)
 
@@ -61,7 +69,7 @@ Motion_Cap_Formatted = pd.concat([MotionCaptureData_new, BLESensorData_new], axi
 Motion_Cap_Formatted = Motion_Cap_Formatted.dropna()
 
 
-Motion_Cap_Formatted.to_csv('./PyTorch/Alex_Motion_Cap_Test_Formatted_New.csv')
+Motion_Cap_Formatted.to_csv('./PyTorch/data/Alex_Motion_Cap_Test_Formatted_New.csv')
 
 
 
