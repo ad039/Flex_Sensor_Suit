@@ -11,82 +11,56 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #hyper parameters
 input_size = 7
-hidden_size = 10000
+hidden_size = 1000
 num_classes = 3
-num_epochs = 10000
-learing_rate = 0.0001
-start_train_time = 5.5
-end_train_time = 6    # min
+num_epochs = 200
+learing_rate = 0.001
+start_train_time = 0
+end_train_time = 4  # min
 start_test_time = 5.5
 end_test_time = 6
-sample_frequency = 25 # Hz
+sample_frequency = 100 # Hz
 
-
-# Circle 5.5-6 min
+# Circle
+# start_test_time = 6.07
+#end_test_time = 6.18
 # Box 5-5.5 min
 
+#data loading
+xy = np.loadtxt('./PyTorch/Alex_Motion_Cap_Test_Formatted_New.csv', delimiter=",", dtype=np.float32, skiprows=1)
+
+
 # import train data 
-class Train_FSSData(Dataset):
+class FSSData(Dataset):
 
-    def __init__(self):
-        #data loading
-        xy = np.loadtxt('./PyTorch/Alex_Motion_Cap_Formatted.csv', delimiter=",", dtype=np.float32, skiprows=1)
-        
-        xy = xy[0:xy.shape[0]:4, :] # downsample
-
-        self.n_samples = xy.shape[0]
+    def __init__(self, dataset):
+        self.n_samples = dataset.shape[0]
+        #print(dataset.shape)
        
-        hand_centre = np.column_stack((np.mean([xy[:,6], xy[:,9], xy[:,12]], axis=0), np.mean([xy[:,7], xy[:,10], xy[:,13]], axis=0), np.mean([xy[:,8], xy[:,11], xy[:,14]], axis=0)))
-        shoulder_centre = np.column_stack((np.mean([xy[:,15], xy[:,18], xy[:,21]], axis=0), np.mean([xy[:,16], xy[:,19], xy[:,22]], axis=0), np.mean([xy[:,17], xy[:,20], xy[:,23]], axis=0)))
+        hand_centre = dataset[:, 12:15]
+        shoulder_centre = dataset[:, 6:9]
         hand_shoulder_origin = np.subtract(hand_centre, shoulder_centre)
-        hand_shoulder_origin = np.around(hand_shoulder_origin/5, decimals=0)*5 # round tothe nearest 5 for training
+        hand_shoulder_origin = np.around(hand_shoulder_origin/2, decimals=0)*2 # round to the nearest 5 for training
+        #print(hand_shoulder_origin.shape)
 
-
-        self.x = torch.from_numpy(xy[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), 25:32]).type(torch.int)
-        self.y = torch.from_numpy(hand_shoulder_origin[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), :]).type(torch.int)
-        print(self.x, self.y)
-        
-    def __getitem__(self, index):
-        return self.x[index], self.y[index]
-
-    def __len__(self):
-        return self.x.size(1)
-
-
-# import test data
-class Test_FSSData(Dataset):
-
-    def __init__(self):
-        #data loading
-        xy = np.loadtxt('./PyTorch/Alex_Motion_Cap_Formatted.csv', delimiter=",", dtype=np.float32, skiprows=1)
-
-        xy = xy[0:xy.shape[0]:4, :] # downsample
-
-        
-        hand_centre = np.column_stack((np.mean([xy[:,6], xy[:,9], xy[:,12]], axis=0), np.mean([xy[:,7], xy[:,10], xy[:,13]], axis=0), np.mean([xy[:,8], xy[:,11], xy[:,14]], axis=0)))
-        shoulder_centre = np.column_stack((np.mean([xy[:,15], xy[:,18], xy[:,21]], axis=0), np.mean([xy[:,16], xy[:,19], xy[:,22]], axis=0), np.mean([xy[:,17], xy[:,20], xy[:,23]], axis=0)))
-        hand_shoulder_origin = np.subtract(hand_centre, shoulder_centre)
-
-        self.n_samples = hand_shoulder_origin.shape[0]
-        #print(self.n_samples)
-
-        self.x = torch.from_numpy(xy[round(start_test_time*sample_frequency*60):round(end_test_time*sample_frequency*60), 25:32]).type(torch.int)
-        self.y = torch.from_numpy(hand_shoulder_origin[round(start_test_time*sample_frequency*60):round(end_test_time*sample_frequency*60), :]).type(torch.int)
+        self.x = torch.from_numpy(dataset[:, 37:44]).type(torch.int)
+        self.y = torch.from_numpy(hand_shoulder_origin).type(torch.int)
         #print(self.x, self.y)
-
+        
     def __getitem__(self, index):
         return self.x[index], self.y[index]
 
     def __len__(self):
         return self.x.size(1)
-    
+
 
 # load the data
-train_dataset = Train_FSSData()
+train_dataset = FSSData(xy[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), :])
 train_x, train_y = train_dataset.x, train_dataset.y
 #dataloader = DataLoader(dataset=train_dataset, batch_size=34515, shuffle=True, num_workers=1)
 
-test_dataset = Test_FSSData()
+
+test_dataset = FSSData(xy[round(start_test_time*sample_frequency*60):round(end_test_time*sample_frequency*60), :])
 test_x, test_y = test_dataset.x, test_dataset.y
 
 class NeuralNet(nn.Module):
@@ -103,14 +77,14 @@ class NeuralNet(nn.Module):
         out = self.l1(x)
         out = self.lrelu(out)
         out = self.lrelu(out)
-        out = self.lrelu(out)
-        out = self.lrelu(out)
+        #out = self.lrelu(out)
+        #out = self.lrelu(out)
         #out = self.lrelu(out)
         #out = self.lrelu(out)
         #out = self.tanh(out)
         #out = self.tanh(out)
-        out = self.relu(out)
-        out = self.relu(out)
+        #out = self.relu(out)
+        #out = self.relu(out)
         out = self.l2(out)
         return out
 
@@ -135,7 +109,7 @@ for epoch in range(num_epochs):
 
     # backward pass
     loss.backward()
-    
+
     optimizer.step()
 
     optimizer.zero_grad()
@@ -148,7 +122,10 @@ pbar.close()
 
 # test
 with torch.no_grad():
-    test_y_pred = model(test_x.to(device))
+    test_num_samples = test_x.size(0)
+    test_y_pred = torch.zeros_like(test_y)
+    for i in range(test_num_samples):
+        test_y_pred[i, :] = model(test_x[i, :]).to(device)
 
     test_y_numpy = test_y.cpu().numpy()
     test_y_pred_numpy = test_y_pred.cpu().numpy()
