@@ -18,6 +18,6 @@ The PlatformIO folder houses the platformIO c++ project FlexSensorSuit BLE for a
 In the Pose Estimation folder are python scripts to generate pose landmarks using the mediapipe pose framework, python scripts to communicate with the Arduino nano 33 BLE or Seeed Xiao BLE and a script to perform both operations.
 
 ### PyTorch
-Inside the PyTorch folder is a script to read a csv file and train a basic FeedForward Neural Network. The network is then tested against an unseen snippet of data and root mean square error is calculated for the predictions.
+Inside the PyTorch folder are scripts to implement different neural network types. The sensor data is trained to predict the x, y, z position of the hand, based on mocap data 
 
 
