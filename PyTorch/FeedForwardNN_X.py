@@ -26,7 +26,7 @@ sample_frequency = 100 # Hz
 # Box 5-5.5 min
 
 #data loading
-xy = np.loadtxt('./PyTorch/Alex_Motion_Cap_Test_Formatted_New.csv', delimiter=",", dtype=np.float32, skiprows=1)
+xy = np.loadtxt('./PyTorch/data/Alex_Motion_Cap_Test_Formatted_New.csv', delimiter=",", dtype=np.float32, skiprows=1)
 
 
 # import train data 
