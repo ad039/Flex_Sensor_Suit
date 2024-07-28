@@ -22,7 +22,7 @@ end_test_time = 6
 sample_frequency = 100 # Hz
 
 # Pysics restraints
-shoulder_to_elbow = 300
+shoulder_to_elbow = 350
 elbow_to_hand = 400
 
 # Circle
@@ -87,10 +87,10 @@ class NeuralNet(nn.Module):
         out = self.l1(x)
         out = self.lrelu(out)
         out = self.lrelu(out)
-        #out = self.lrelu(out)
-        #out = self.lrelu(out)
-        #out = self.lrelu(out)
-        #out = self.lrelu(out)
+        out = self.lrelu(out)
+        out = self.lrelu(out)
+        out = self.lrelu(out)
+        out = self.lrelu(out)
         #out = self.tanh(out)
         #out = self.tanh(out)
         #out = self.relu(out)
@@ -139,7 +139,7 @@ with torch.no_grad():
     test_num_samples = test_x.size(0)
     test_y_pred = torch.zeros_like(test_y)
     for i in range(test_num_samples):
-        test_y_pred[i, :] = model(test_x[i, :]).to(device)
+        test_y_pred[i, :] = model(test_x[i, :].to(device)).to(device)
 
     test_y_numpy = test_y.cpu().numpy()
     test_y_pred_numpy = test_y_pred.cpu().numpy()

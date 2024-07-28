@@ -74,9 +74,6 @@ train_y = torch.from_numpy(scaler_y.transform(train_y))
 test_y = torch.from_numpy(scaler_y.transform(test_y))
 
 
-print(train_x)
-print(test_x)
-
 class NeuralNet(nn.Module):
     def __init__(self, input_size, hidden_size, num_classes):
         super(NeuralNet, self).__init__()
@@ -139,7 +136,7 @@ with torch.no_grad():
     test_num_samples = test_x.size(0)
     test_y_pred = torch.zeros_like(test_y)
     for i in range(test_num_samples):
-        test_y_pred[i, :] = model(test_x[i, :]).to(device)
+        test_y_pred[i, :] = model(test_x[i, :].to(device)).to(device)
 
     test_y_numpy = scaler_y.inverse_transform(test_y.cpu().numpy())
     test_y_pred_numpy = scaler_y.inverse_transform(test_y_pred.cpu().numpy())
