@@ -3,11 +3,10 @@ import mediapipe as mp
 import time
 from bluepy import btle
 import numpy as np
-import threading
+from threading import Thread, Event
 import queue
 import csv
 import struct
-
 
 
 # function to communicate with microcontroller and recieve sensor data over bluetooth
@@ -31,20 +30,17 @@ def ble_task(queue=queue.LifoQueue):
     print("connected to characteristic")
     i = 0
 
-    # wait for ready to be true
-    while ready == False:
-        continue
-
     while True:
+        # wait for writer to be ready
+        writer_ready_evnt.wait()
+
         val = flexSensorCharValue.read()
         val = struct.unpack("<hhhhhhh",val)
-        val = np.append(time.perf_counter(), val)
-        print(val)
+        #print(val)
         queue.put(val)
-        i+= 1
-        
-        
 
+        
+        
 # function to run pose detection using mediapipe
 def pose_estimation(queue=queue.LifoQueue):
     global ready
@@ -58,14 +54,15 @@ def pose_estimation(queue=queue.LifoQueue):
     time_prev = 0
     i = 0
     
-    # wait for ready to be true
-    while ready == False:
-        continue
 
-    with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5, model_complexity=2) as pose:
+
+    with mp_pose.Pose(min_detection_confidence=0.1, min_tracking_confidence=0.1, model_complexity=2) as pose:
         
         while cap.isOpened():
             
+            # wait for writer to be ready
+            writer_ready_evnt.wait()
+
             success, image = cap.read()
 
             image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB) # flip to get selfi view, this impacts the landmark extraction later on: take left hand for right hand
@@ -93,56 +90,60 @@ def pose_estimation(queue=queue.LifoQueue):
                 
                 right_hand_norm = np.subtract(hand_centre_world, right_shoulder)
 
-                queue_array = np.append(time.perf_counter(), np.append(right_hand_norm, normal_vector))
-                print(queue_array)
-                queue.put(queue_array)
+                #queue_array = np.append(right_hand_norm, normal_vector)
+                #print(queue_array)
+                queue.put(right_hand_norm)
                 i+=1
-            
-            #image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                        
             #startpoint = (int(hand_centre[0]*image_width), int(hand_centre[1]*image_height))
             #endpoint = (int(50*normal_vector[0]+startpoint[0]), int(50*normal_vector[1]+startpoint[1]))
             #thickness = 9
             #color = (255, 0, 0)
             #image = cv2.line(image, startpoint, endpoint, color, thickness)
-
-
-            time_now = time.time()
-            totalTime = time_now-time_prev
-            time_prev = time_now
-            fps = 1 / totalTime
-            
+             
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-
-            #mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-            #mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
-
-            cv2.putText(image, f'{int(fps)}', (20,70), cv2.FONT_HERSHEY_COMPLEX, 1.5, (0, 255, 0))
+            mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
             cv2.imshow('Mediapipe pose', image)
 
-            if cv2.waitKey(5) & 0xFF ==27:
+            if cv2.waitKey(1) & 0xFF ==27:
                 break
 
     cap.release()
 
 
-def writer_task(ble_queue, pose_queue, writer):
+# function to control reading the queues and sending that data to a csv file (output.csv)
+def writer_task(ble_queue=queue.Queue, pose_queue=queue.Queue, writer=None):
     global prevTime
-    global ready
-    ready = True
+
+    # set writer ready event
+    writer_ready_evnt.set()
 
     print(f'loop: {(time.perf_counter()-prevTime)*1000:.3f}')
     prevTime = time.perf_counter()
     # read the queues from BLE and Pose Estimation
-    ble_val = ble_queue.get()
     pose_val = pose_queue.get()
-    queue_val = np.append(np.divide(ble_val,100), pose_val)
+    ble_val = ble_queue.get()
+
+    # close ready event
+    writer_ready_evnt.clear()
+
+    # empty the queues so they dont clog up
+    with pose_queue.mutex:
+        pose_queue.queue.clear()
+    
+    with ble_queue.mutex:
+        ble_queue.queue.clear()
+
+    # append all data into a  numpy array
+    queue_val = np.append(time.time(), np.append(np.divide(ble_val, 100), pose_val))
     #print(queue_val)
     writer.writerow(queue_val)
     #print(f'duration: {(time.perf_counter()-prevTime)*1000:.3f}')
 
 
+# function to control the speed of the writter loop, this in turn sets the maximum speed of the system
 def do_every(period,f,*args):
     def g_tick():
         t = time.time()
@@ -156,23 +157,23 @@ def do_every(period,f,*args):
 
 
 if __name__ == "__main__":
-    global ready
+
 
     prevTime = 0.0
 
-    ble_q = queue.LifoQueue(maxsize=1)
+    # two Lifo queues to get the most recent data so data allignes better
+    ble_q = queue.LifoQueue(maxsize=100)
     pose_q = queue.LifoQueue(maxsize=100)
 
-    with open('Pose_Estimation/output.csv', 'w', newline='') as f:
+    with open('./Pose_Estimation/output.csv', 'w', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(["ElbowFlex", "ShoulderFlex1", "ShoulderFlex2", "ShoulderFlex3", "ForearmFlex", "HandFlex1", "HandFlex2", "P_x", "P_y", "P_z", "O_x", "O_y", "O_z"])
+        writer.writerow(["Timestamp","ElbowFlex", "ShoulderFlex1", "ShoulderFlex2", "ShoulderFlex3", "ForearmFlex", "HandFlex1", "HandFlex2", "P_x", "P_y", "P_z", "O_x", "O_y", "O_z"])
         
+        writer_ready_evnt = Event()
 
-        ble_thread = threading.Thread(target=ble_task, args=(ble_q,))
-        pose_estimation_thread = threading.Thread(target=pose_estimation, args=(pose_q,))
-        writer_thread = threading.Thread(target=do_every, args=(0.1, writer_task, ble_q, pose_q, writer))
-        
-        ready = False
+        ble_thread = Thread(target=ble_task, args=(ble_q,))
+        pose_estimation_thread = Thread(target=pose_estimation, args=(pose_q,))
+        writer_thread = Thread(target=do_every, args=(0.1, writer_task, ble_q, pose_q, writer))
         
         ble_thread.start()
         pose_estimation_thread.start()
