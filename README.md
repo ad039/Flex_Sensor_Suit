@@ -3,8 +3,9 @@ Flex Sensor Suit Repository based on Undergraduate Thesis by Alex Dunn
 
 This repository is set up to use venv with python3, you can install the required python3 libraries to your virtual environment using
 ```
-pip install -r "requirements.txt"
+pip install -r "*_requirements.txt"
 ```
+There are different virtual environments for both Pose Estiamtion and PyTorch sections
 
 The repository is broken into three sections:
 - [PlatformIO](https://github.com/ad039/Flex_Sensor_Suit#platformio)
