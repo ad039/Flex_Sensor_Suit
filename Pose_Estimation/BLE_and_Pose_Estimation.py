@@ -10,8 +10,8 @@ import struct
 
 
 
-
-def ble_startup(queue=queue.LifoQueue):
+# function to communicate with microcontroller and recieve sensor data over bluetooth
+def ble_task(queue=queue.LifoQueue):
     global ready
 
     print("Connecting...")
@@ -45,7 +45,7 @@ def ble_startup(queue=queue.LifoQueue):
         
         
 
-
+# function to run pose detection using mediapipe
 def pose_estimation(queue=queue.LifoQueue):
     global ready
 
@@ -168,7 +168,7 @@ if __name__ == "__main__":
         writer.writerow(["ElbowFlex", "ShoulderFlex1", "ShoulderFlex2", "ShoulderFlex3", "ForearmFlex", "HandFlex1", "HandFlex2", "P_x", "P_y", "P_z", "O_x", "O_y", "O_z"])
         
 
-        ble_thread = threading.Thread(target=ble_startup, args=(ble_q,))
+        ble_thread = threading.Thread(target=ble_task, args=(ble_q,))
         pose_estimation_thread = threading.Thread(target=pose_estimation, args=(pose_q,))
         writer_thread = threading.Thread(target=do_every, args=(0.1, writer_task, ble_q, pose_q, writer))
         
