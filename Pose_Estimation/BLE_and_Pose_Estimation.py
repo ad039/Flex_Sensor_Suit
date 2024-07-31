@@ -4,22 +4,23 @@ import time
 from bluepy import btle
 import numpy as np
 import threading
-from queue import Queue
+import queue
 import csv
 import struct
 
 
 
 
-def ble_startup(queue):
-    global flexSensorCharValue
+def ble_startup(queue=queue.LifoQueue):
+    global ready
+
     print("Connecting...")
 
     # MAC addresses for ble chips
     # "29:F0:E3:F9:C9:CD" for Arduino Nano BLE
     # "93:43:92:07:91:11" for Xioa nrf52 BLE 
 
-    FlexSensorSuit = btle.Peripheral("93:43:92:07:91:11")
+    FlexSensorSuit = btle.Peripheral("29:F0:E3:F9:C9:CD")
 
     print("connected")
     FlexSensorSuit.getServices()
@@ -29,25 +30,38 @@ def ble_startup(queue):
     flexSensorCharValue = flexSensorService.getCharacteristics()[0]
     print("connected to characteristic")
     i = 0
+
+    # wait for ready to be true
+    while ready == False:
+        continue
+
     while True:
         val = flexSensorCharValue.read()
         val = struct.unpack("<hhhhhhh",val)
-        #print(val)
+        val = np.append(time.perf_counter(), val)
+        print(val)
         queue.put(val)
         i+= 1
         
         
 
 
-def pose_estimation(queue):
-    
+def pose_estimation(queue=queue.LifoQueue):
+    global ready
+
+
     mp_pose = mp.solutions.pose
     mp_drawing = mp.solutions.drawing_utils
 
-    cap = cv2.VideoCapture(2)
+    cap = cv2.VideoCapture(0)
 
     time_prev = 0
     i = 0
+    
+    # wait for ready to be true
+    while ready == False:
+        continue
+
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5, model_complexity=2) as pose:
         
         while cap.isOpened():
@@ -79,8 +93,8 @@ def pose_estimation(queue):
                 
                 right_hand_norm = np.subtract(hand_centre_world, right_shoulder)
 
-                queue_array = np.append(right_hand_norm, normal_vector)
-                #print(queue_array)
+                queue_array = np.append(time.perf_counter(), np.append(right_hand_norm, normal_vector))
+                print(queue_array)
                 queue.put(queue_array)
                 i+=1
             
@@ -115,6 +129,8 @@ def pose_estimation(queue):
 
 def writer_task(ble_queue, pose_queue, writer):
     global prevTime
+    global ready
+    ready = True
 
     print(f'loop: {(time.perf_counter()-prevTime)*1000:.3f}')
     prevTime = time.perf_counter()
@@ -140,10 +156,12 @@ def do_every(period,f,*args):
 
 
 if __name__ == "__main__":
+    global ready
+
     prevTime = 0.0
 
-    ble_q = Queue(maxsize=100)
-    pose_q = Queue(maxsize=100)
+    ble_q = queue.LifoQueue(maxsize=1)
+    pose_q = queue.LifoQueue(maxsize=100)
 
     with open('Pose_Estimation/output.csv', 'w', newline='') as f:
         writer = csv.writer(f)
@@ -152,8 +170,9 @@ if __name__ == "__main__":
 
         ble_thread = threading.Thread(target=ble_startup, args=(ble_q,))
         pose_estimation_thread = threading.Thread(target=pose_estimation, args=(pose_q,))
-        writer_thread = threading.Thread(target=do_every, args=(0.07, writer_task, ble_q, pose_q, writer))
-
+        writer_thread = threading.Thread(target=do_every, args=(0.1, writer_task, ble_q, pose_q, writer))
+        
+        ready = False
         
         ble_thread.start()
         pose_estimation_thread.start()
