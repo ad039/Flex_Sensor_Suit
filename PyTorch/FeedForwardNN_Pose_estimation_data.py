@@ -11,24 +11,24 @@ from sklearn.preprocessing import MinMaxScaler
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #hyper parameters
-input_size = 7
-hidden_size = 50
+input_size = 4
+hidden_size = 500
 num_classes = 3
 num_epochs = 2000
 learing_rate = 0.001
 start_train_time = 0
-end_train_time = 5  # min
-start_test_time = 5
-end_test_time = 7
+end_train_time = 3.5  # min
+start_test_time = 3.5
+end_test_time = 4
 sample_frequency = 10 # Hz
 
 # Circle
-# start_test_time = 6.07
-#end_test_time = 6.18
-# Box 5-5.5 min
+# start_test_time = 4.15
+# end_test_time = 4.3
+# Box 3.5-4
 
 #data loading
-xy = np.loadtxt('./PyTorch/data/output_test_5min_2.csv', delimiter=",", dtype=np.float32, skiprows=1)
+xy = np.loadtxt('./PyTorch/data/output_pose_estimation_1.csv', delimiter=",", dtype=np.float32, skiprows=1)
 
 scaler_x = MinMaxScaler()
 scaler_y = MinMaxScaler()
@@ -41,18 +41,16 @@ class FSSData(Dataset):
         self.n_samples = dataset.shape[0]
         #print(dataset.shape)
        
-        hand_centre = dataset[:, 7:10]*1000
+        hand_centre = dataset[:, 8:11]*1000
         #print(hand_shoulder_origin.shape)
         alpha = 0.1
         for i in range(2, hand_centre.shape[0]):
             hand_centre[i,:] = (alpha)*hand_centre[i,:] + (1-alpha)*hand_centre[i-1,:]
 
-        hand_centre = np.around(hand_centre/5, decimals=0)*5 # round to the nearest 5 for training
+        hand_centre = np.around(hand_centre/10, decimals=0)*10 # round to the nearest 5 for training
 
-
-
-        self.x = torch.from_numpy(dataset[:, 0:7]).type(torch.int)
-        self.y = torch.from_numpy(hand_centre).type(torch.int)
+        self.x = dataset[:, 1:5]
+        self.y = hand_centre
         #print(self.x, self.y)
         
     def __getitem__(self, index):
@@ -147,7 +145,7 @@ with torch.no_grad():
     test_y_pred_numpy = scaler_y.inverse_transform(test_y_pred.cpu().numpy())
 
     # smoothing
-    alpha = 0.05
+    alpha = 0.2
     n_samples = np.size(test_y_pred_numpy, 0)
     i = 2
     test_y_pred_numpy_smoothed = np.zeros_like(test_y_pred_numpy)
@@ -165,14 +163,22 @@ with torch.no_grad():
     RMSE_z = math.sqrt(np.square(np.subtract(test_y_numpy[:,2],test_y_pred_numpy[:,2])).mean())
     print(f'RMSE in x: {RMSE_x:.4f}, RMSE in y: {RMSE_y:.4f}, RMSE in z: {RMSE_z:.4f}')
 
+    plot_labels = [f'X, RMSE: {RMSE_x:.1f}', f'Y, RMSE: {RMSE_y:.1f}', f'Z, RMSE: {RMSE_z:.1f}']
+    
+    test_time = np.arange(test_y_numpy.shape[0])/sample_frequency
+    test_time.reshape(test_y_numpy.shape[0])
     # plot
     fig, axs = plt.subplots(1, 3)
     for j in range(3):
-        axs[j].plot(test_y_numpy[:, j])
-        axs[j].plot(test_y_pred_numpy[:, j])
-        axs[j].plot(test_y_pred_numpy_smoothed[:, j])
+        axs[j].plot(test_time, test_y_numpy[:, j])
+        axs[j].plot(test_time, test_y_pred_numpy[:, j])
+        axs[j].plot(test_time, test_y_pred_numpy_smoothed[:, j])
         axs[j].legend(["Target", "Prediction", "Prediction Smoothed"])
-
+        axs[j].set_title(plot_labels[j])
+        axs[j].set_xlabel("Time (s)")
+    
+    axs[0].set_ylabel("Position (mm)")
+    
     fig2 = plt.figure()
     ax2 = plt.axes(projection='3d')  
     ax2.plot3D(test_y_numpy[:,0], test_y_numpy[:,1], test_y_numpy[:,2])
