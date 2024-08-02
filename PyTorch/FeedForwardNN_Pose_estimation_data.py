@@ -11,16 +11,18 @@ from sklearn.preprocessing import MinMaxScaler
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #hyper parameters
-input_size = 4
-hidden_size = 500
+input_size = 7
+hidden_size = 1000
 num_classes = 3
-num_epochs = 2000
+num_epochs = 20000
 learing_rate = 0.001
 start_train_time = 0
 end_train_time = 3.5  # min
-start_test_time = 3.5
-end_test_time = 4
+start_test_time = 4.15
+end_test_time = 4.3
 sample_frequency = 10 # Hz
+activation_function = nn.Tanh()
+num_layers = 10
 
 # Circle
 # start_test_time = 4.15
@@ -43,13 +45,11 @@ class FSSData(Dataset):
        
         hand_centre = dataset[:, 8:11]*1000
         #print(hand_shoulder_origin.shape)
-        alpha = 0.1
-        for i in range(2, hand_centre.shape[0]):
-            hand_centre[i,:] = (alpha)*hand_centre[i,:] + (1-alpha)*hand_centre[i-1,:]
+        
 
         hand_centre = np.around(hand_centre/10, decimals=0)*10 # round to the nearest 5 for training
 
-        self.x = dataset[:, 1:5]
+        self.x = dataset[:, 1:8]
         self.y = hand_centre
         #print(self.x, self.y)
         
@@ -78,7 +78,7 @@ train_y = torch.from_numpy(scaler_y.transform(train_y))
 test_y = torch.from_numpy(scaler_y.transform(test_y))
 
 class NeuralNet(nn.Module):
-    def __init__(self, input_size, hidden_size, num_classes):
+    def __init__(self, input_size, hidden_size, num_classes, activation_function, num_layers):
         super(NeuralNet, self).__init__()
         self.l1 = nn.Linear(input_size, hidden_size)
         self.relu = nn.ReLU()
@@ -89,20 +89,14 @@ class NeuralNet(nn.Module):
     def forward(self, x):
         x = x.type(torch.float32)
         out = self.l1(x)
-        out = self.lrelu(out)
-        out = self.lrelu(out)
-        #out = self.lrelu(out)
-        #out = self.lrelu(out)
-        #out = self.lrelu(out)
-        #out = self.lrelu(out)
-        out = self.tanh(out)
-        out = self.tanh(out)
-        out = self.relu(out)
-        out = self.relu(out)
+
+        for i in range(num_layers):
+            out = activation_function(out)
+
         out = self.l2(out)
         return out
 
-model = NeuralNet(input_size, hidden_size, num_classes).to(device)
+model = NeuralNet(input_size, hidden_size, num_classes, activation_function, num_layers).to(device)
 
 # loss and optimzer
 criterion = nn.L1Loss()
@@ -139,7 +133,7 @@ with torch.no_grad():
     test_num_samples = test_x.size(0)
     test_y_pred = torch.zeros_like(test_y)
     for i in range(test_num_samples):
-        test_y_pred[i, :] = model(test_x[i, :]).to(device)
+        test_y_pred[i, :] = model(test_x[i, :].to(device)).to(device)
 
     test_y_numpy = scaler_y.inverse_transform(test_y.cpu().numpy())
     test_y_pred_numpy = scaler_y.inverse_transform(test_y_pred.cpu().numpy())
@@ -155,7 +149,7 @@ with torch.no_grad():
 
     for i in range(2, n_samples):
         test_y_pred_numpy_smoothed[i,:] = (alpha)*test_y_pred_numpy[i,:] + (1-alpha)*test_y_pred_numpy_smoothed[i-1,:]
-
+        test_y[i,:] = (alpha)*test_y[i,:] + (1-alpha)*test_y[i-1,:]
 
     # calculate RMSE
     RMSE_x = math.sqrt(np.square(np.subtract(test_y_numpy[:,0],test_y_pred_numpy[:,0])).mean())
@@ -189,5 +183,7 @@ with torch.no_grad():
     ax2.set_zlabel('z (mm)')
     ax2.legend(["Target", "Prediction", "Prediction Smoothed"])
 
+    ax2.set_title(f'3D Plot of Travel Path. Input size: {input_size}, Hidden Layer Size: {hidden_size}, Num Epochs: {num_epochs}, Activation Fn: {activation_function}, Num Layers: {num_layers}')
+    
 
     plt.show()
