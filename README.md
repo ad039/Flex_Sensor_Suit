@@ -21,4 +21,6 @@ In the Pose Estimation folder are python scripts to generate pose landmarks usin
 ### PyTorch
 Inside the PyTorch folder are scripts to implement different neural network types. The sensor data is trained to predict the x, y, z position of the hand, based on mocap data 
 
+### Results (Aug 2024)
 
+![circle_pose_estimation_training_results_2D](https://github.com/user-attachments/assets/9951bfaa-8181-40ad-b726-59cdc785c679)
