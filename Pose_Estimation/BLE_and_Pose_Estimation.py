@@ -19,7 +19,7 @@ def ble_task(queue=queue.LifoQueue):
     # "29:F0:E3:F9:C9:CD" for Arduino Nano BLE
     # "93:43:92:07:91:11" for Xioa nrf52 BLE 
 
-    FlexSensorSuit = btle.Peripheral("29:F0:E3:F9:C9:CD")
+    FlexSensorSuit = btle.Peripheral("93:43:92:07:91:11")
 
     print("connected")
     FlexSensorSuit.getServices()
@@ -49,14 +49,14 @@ def pose_estimation(queue=queue.LifoQueue):
     mp_pose = mp.solutions.pose
     mp_drawing = mp.solutions.drawing_utils
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(2)
 
     time_prev = 0
     i = 0
     
 
 
-    with mp_pose.Pose(min_detection_confidence=0.1, min_tracking_confidence=0.1, model_complexity=2) as pose:
+    with mp_pose.Pose(min_detection_confidence=0.9, min_tracking_confidence=0.9, model_complexity=2) as pose:
         
         while cap.isOpened():
             
@@ -173,7 +173,7 @@ if __name__ == "__main__":
 
         ble_thread = Thread(target=ble_task, args=(ble_q,))
         pose_estimation_thread = Thread(target=pose_estimation, args=(pose_q,))
-        writer_thread = Thread(target=do_every, args=(0.1, writer_task, ble_q, pose_q, writer))
+        writer_thread = Thread(target=do_every, args=(0.05, writer_task, ble_q, pose_q, writer))
         
         ble_thread.start()
         pose_estimation_thread.start()

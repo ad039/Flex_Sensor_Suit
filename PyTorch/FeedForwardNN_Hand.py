@@ -5,21 +5,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 from tqdm import tqdm
+from sklearn.preprocessing import MinMaxScaler
 
 # device onfig
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #hyper parameters
 input_size = 7
-hidden_size = 1000
+hidden_size = 200
 num_classes = 3
-num_epochs = 200
+num_epochs = 2000
 learing_rate = 0.001
 start_train_time = 0
 end_train_time = 4  # min
-start_test_time = 5.5
-end_test_time = 6
+start_test_time = 6.07
+end_test_time = 6.18
 sample_frequency = 100 # Hz
+activation_function = nn.Tanh()
+num_layers = 20
 
 # Circle
 # start_test_time = 6.07
@@ -27,24 +30,28 @@ sample_frequency = 100 # Hz
 # Box 5-5.5 min
 
 #data loading
-xy = np.loadtxt('./PyTorch/Alex_Motion_Cap_Test_Formatted_New.csv', delimiter=",", dtype=np.float32, skiprows=1)
+xy = np.loadtxt('./PyTorch/data/Alex_Motion_Cap_Test_Formatted_New.csv', delimiter=",", dtype=np.float32, skiprows=1)
 
+scaler_x = MinMaxScaler()
+scaler_y = MinMaxScaler()
 
 # import train data 
 class FSSData(Dataset):
 
     def __init__(self, dataset):
         self.n_samples = dataset.shape[0]
-        #print(dataset.shape)
-       
+        print(dataset.shape)
+
+        dataset = dataset[0:self.n_samples:10, :] # downsample
+
         hand_centre = dataset[:, 12:15]
         shoulder_centre = dataset[:, 6:9]
         hand_shoulder_origin = np.subtract(hand_centre, shoulder_centre)
-        hand_shoulder_origin = np.around(hand_shoulder_origin/2, decimals=0)*2 # round to the nearest 5 for training
-        #print(hand_shoulder_origin.shape)
+        hand_shoulder_origin = np.around(hand_shoulder_origin/5, decimals=0)*5 # round to the nearest 5 for training
+        print(hand_shoulder_origin.shape)
 
-        self.x = torch.from_numpy(dataset[:, 37:44]).type(torch.int)
-        self.y = torch.from_numpy(hand_shoulder_origin).type(torch.int)
+        self.x = dataset[:, 37:44]
+        self.y = hand_shoulder_origin
         #print(self.x, self.y)
         
     def __getitem__(self, index):
@@ -59,36 +66,37 @@ train_dataset = FSSData(xy[round(start_train_time*sample_frequency*60):round(end
 train_x, train_y = train_dataset.x, train_dataset.y
 #dataloader = DataLoader(dataset=train_dataset, batch_size=34515, shuffle=True, num_workers=1)
 
-
 test_dataset = FSSData(xy[round(start_test_time*sample_frequency*60):round(end_test_time*sample_frequency*60), :])
 test_x, test_y = test_dataset.x, test_dataset.y
 
+# scale datasets
+scaler_x.fit(train_x)
+train_x = torch.from_numpy(scaler_x.transform(train_x))
+test_x = torch.from_numpy(scaler_x.transform(test_x))
+
+scaler_y.fit(train_y)
+train_y = torch.from_numpy(scaler_y.transform(train_y))
+test_y = torch.from_numpy(scaler_y.transform(test_y))
+
 class NeuralNet(nn.Module):
-    def __init__(self, input_size, hidden_size, num_classes):
+    def __init__(self, input_size, hidden_size, num_classes, activation_function, num_layers):
         super(NeuralNet, self).__init__()
         self.l1 = nn.Linear(input_size, hidden_size)
-        self.relu = nn.ReLU()
-        self.lrelu = nn.LeakyReLU()
-        self.tanh = nn.Tanh()
+        self.av = activation_function
+        self.num_layers = num_layers
         self.l2 = nn.Linear(hidden_size, num_classes)
     
     def forward(self, x):
         x = x.type(torch.float32)
         out = self.l1(x)
-        out = self.lrelu(out)
-        out = self.lrelu(out)
-        #out = self.lrelu(out)
-        #out = self.lrelu(out)
-        #out = self.lrelu(out)
-        #out = self.lrelu(out)
-        #out = self.tanh(out)
-        #out = self.tanh(out)
-        #out = self.relu(out)
-        #out = self.relu(out)
+
+        for i in range(self.num_layers):
+            out = self.av(out)
+
         out = self.l2(out)
         return out
 
-model = NeuralNet(input_size, hidden_size, num_classes).to(device)
+model = NeuralNet(input_size, hidden_size, num_classes, activation_function, num_layers).to(device)
 
 # loss and optimzer
 criterion = nn.L1Loss()
@@ -127,8 +135,8 @@ with torch.no_grad():
     for i in range(test_num_samples):
         test_y_pred[i, :] = model(test_x[i, :]).to(device)
 
-    test_y_numpy = test_y.cpu().numpy()
-    test_y_pred_numpy = test_y_pred.cpu().numpy()
+    test_y_numpy = scaler_y.inverse_transform(test_y.cpu().numpy())
+    test_y_pred_numpy = scaler_y.inverse_transform(test_y_pred.cpu().numpy())
 
     # smoothing
     alpha = 0.05
