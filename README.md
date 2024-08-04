@@ -23,4 +23,6 @@ Inside the PyTorch folder are scripts to implement different neural network type
 
 ### Results (Aug 2024)
 
+Results for a Mediapipe Pose Estimation trained neural network consisting of 7 input sensors and three outputs: the (x, y, z) position of the hand 
+
 ![circle_pose_estimation_training_results_2D](https://github.com/user-attachments/assets/9951bfaa-8181-40ad-b726-59cdc785c679)
