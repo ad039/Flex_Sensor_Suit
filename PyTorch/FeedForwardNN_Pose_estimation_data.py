@@ -57,7 +57,7 @@ class FSSData(Dataset):
         return self.x[index], self.y[index]
 
     def __len__(self):
-        return self.x.size(1)
+        return self.x.shape[1]
 
 
 # load the data
@@ -81,17 +81,16 @@ class NeuralNet(nn.Module):
     def __init__(self, input_size, hidden_size, num_classes, activation_function, num_layers):
         super(NeuralNet, self).__init__()
         self.l1 = nn.Linear(input_size, hidden_size)
-        self.relu = nn.ReLU()
-        self.lrelu = nn.LeakyReLU()
-        self.tanh = nn.Tanh()
+        self.av = activation_function
+        self.num_layers = num_layers
         self.l2 = nn.Linear(hidden_size, num_classes)
     
     def forward(self, x):
         x = x.type(torch.float32)
         out = self.l1(x)
 
-        for i in range(num_layers):
-            out = activation_function(out)
+        for i in range(self.num_layers):
+            out = self.av(out)
 
         out = self.l2(out)
         return out
