@@ -12,7 +12,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #hyper parameters
 input_size = 7
-hidden_size = 500
+hidden_size = 1000
 num_classes = 3
 num_epochs = 10000
 learing_rate = 0.001
@@ -22,7 +22,7 @@ start_test_time = 4.15
 end_test_time = 4.3
 sample_frequency = 10 # Hz
 activation_function = nn.Tanh()
-num_layers = 20
+num_layers = 30
 
 # Circle
 # start_test_time = 4.15
