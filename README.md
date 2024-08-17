@@ -1,5 +1,5 @@
 # Flex_Sensor_Suit
-Flex Sensor Suit Repository based on Undergraduate Thesis by Alex Dunn
+Flex Sensor Suit Repository based on the Undergraduate Thesis by Alex Dunn at the University of Wollongong. It aims to track the motion of the human arm using soft capacitive sensors and transfer this to a collaborative robot (Cobot).
 
 This repository is set up to use venv with python3, you can install the required python3 libraries to your virtual environment using
 ```
@@ -13,7 +13,7 @@ The repository is broken into three sections:
 - [PyTorch](https://github.com/ad039/Flex_Sensor_Suit#pytorch)
 
 ### PlatformIO
-The PlatformIO folder houses the platformIO c++ project FlexSensorSuit BLE for an mbed nrf52 microconrtoller such as the Arduino nano 33 BLE or the Seeed Xiao BLE. To run the program, platformIO will need to be installed on Visual Studio Code. Alternativley, the main.cpp file code can be coppied and pasted into the Arduino IDE.
+The PlatformIO folder houses the platformIO c++ project FlexSensorSuit BLE for an mbed nrf52 microconrtoller such as the Arduino nano 33 BLE or the Seeed Xiao BLE. The microcontroller is connected to a wiring loom, currently, with seven capacitive sensors. It reads the sensors and then transfers the data over Bluetooth Low Energy to a master PC. To run the program, platformIO will need to be installed on Visual Studio Code. Alternativley, the main.cpp file code can be coppied and pasted into the Arduino IDE.
 
 ### Pose_Estimation
 In the Pose Estimation folder are python scripts to generate pose landmarks using the mediapipe pose framework, python scripts to communicate with the Arduino nano 33 BLE or Seeed Xiao BLE using Bleutooth Low Energy (BLE) and a script to perform both operations for simultaneous data collection.
