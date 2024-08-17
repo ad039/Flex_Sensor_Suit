@@ -16,10 +16,10 @@ The repository is broken into three sections:
 The PlatformIO folder houses the platformIO c++ project FlexSensorSuit BLE for an mbed nrf52 microconrtoller such as the Arduino nano 33 BLE or the Seeed Xiao BLE. To run the program, platformIO will need to be installed on Visual Studio Code. Alternativley, the main.cpp file code can be coppied and pasted into the Arduino IDE.
 
 ### Pose_Estimation
-In the Pose Estimation folder are python scripts to generate pose landmarks using the mediapipe pose framework, python scripts to communicate with the Arduino nano 33 BLE or Seeed Xiao BLE and a script to perform both operations.
+In the Pose Estimation folder are python scripts to generate pose landmarks using the mediapipe pose framework, python scripts to communicate with the Arduino nano 33 BLE or Seeed Xiao BLE using Bleutooth Low Energy(BLE) and a script to perform both operations for simultaneous data collection.
 
 ### PyTorch
-Inside the PyTorch folder are scripts to implement different neural network types. The sensor data is trained to predict the x, y, z position of the hand, based on mocap data 
+Inside the PyTorch folder are scripts to implement different neural network types. The sensor data is trained to predict the x, y, z position of the hand, based on mocap data. Different mocap data files are available in the 'data' folder included.
 
 ### Results (Aug 2024)
 
