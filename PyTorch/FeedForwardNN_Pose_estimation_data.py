@@ -12,7 +12,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #hyper parameters
 input_size = 7
-hidden_size = 200
+hidden_size = 500
 num_classes = 3
 num_epochs = 10000
 learing_rate = 0.001
@@ -30,7 +30,7 @@ num_layers = 20
 # Box 3.5-4
 
 #data loading
-xy = np.loadtxt('./PyTorch/data/output_pose_estimation_1.csv', delimiter=",", dtype=np.float32, skiprows=1)
+xy = np.loadtxt('./PyTorch/data/Mediapipe_Pose_Estimation_Data.csv', delimiter=",", dtype=np.float32, skiprows=1)
 
 scaler_x = MinMaxScaler()
 scaler_y = MinMaxScaler()
