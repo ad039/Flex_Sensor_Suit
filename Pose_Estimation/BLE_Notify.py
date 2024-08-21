@@ -21,7 +21,9 @@ def ble_task():
     # Initialisation  -------
     #"29:F0:E3:F9:C9:CD" for Arduino Nano BLE
     #"93:43:92:07:91:11" for Xioa nrf52 BLE 
-    FlexSensorSuit = btle.Peripheral("93:43:92:07:91:11")
+    #"F4:12:FA:5A:39:51" for esp32-s3 qt py
+
+    FlexSensorSuit = btle.Peripheral("F4:12:FA:5A:39:51")
 
     print("connected")
     FlexSensorSuit.getServices()
@@ -51,18 +53,17 @@ def writer_task(ble_queue, f):
     while True:
         # wait for and read the queue from BLE_read
         ble_val = ble_queue.get()
-        #print(f'writer loop: {(time.perf_counter()-prevTime_writer)*1000:.3f}')
-        #prevTime_writer = time.perf_counter()
         ble_val = struct.unpack("<hhhhhhh",ble_val) 
-        #print(np.divide(ble_val,100))
-        writer.writerow(np.append(time.time(), np.divide(ble_val,100)))
+        writer_time = (time.perf_counter()-prevTime_writer)*1000
+        prevTime_writer = time.perf_counter()
+        writer.writerow(np.append(writer_time, np.divide(ble_val,100)))
 
 
 if __name__ == "__main__":
     
     ble_q = Queue(maxsize=1)
 
-    with open('Pose_Estimation/output.csv', 'w', newline='') as f:
+    with open('Pose_Estimation/output_notify.csv', 'w', newline='') as f:
         ble_thread = threading.Thread(target=ble_task, args=())
         writer_thread = threading.Thread(target=writer_task, args=(ble_q, f))
 

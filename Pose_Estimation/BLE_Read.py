@@ -8,6 +8,7 @@ import csv
 
 #"29:F0:E3:F9:C9:CD" for Arduino Nano BLE
 #"93:43:92:07:91:11" for Xioa nrf52 BLE 
+#"F4:12:FA:5A:39:51" for esp32-s3 qt py
 
 # periodically call another function without drift
 def do_every(period,f,*args):
@@ -27,7 +28,7 @@ def ble_init():
 
     print("Connecting...")
 
-    FlexSensorSuit = btle.Peripheral("93:43:92:07:91:11")
+    FlexSensorSuit = btle.Peripheral("F4:12:FA:5A:39:51")
 
     FlexSensorSuit.setMTU(23)
 
@@ -59,7 +60,7 @@ def writer_task(ble_queue, f):
         prevTime_writer = time.perf_counter()
         # wait for and read the queue from BLE_read
         ble_val = ble_queue.get()
-        #ble_val = struct.unpack("<hhhhhhh",ble_val)
+        ble_val = struct.unpack("<hhhhhhh",ble_val)
         #queue_val = np.divide(ble_val,100)
         print(ble_val)
         #writer.writerow(np.divide(ble_val,100))
@@ -73,7 +74,7 @@ if __name__ == "__main__":
     ble_q = Queue(maxsize=1)
 
     with open('Pose_Estimation/output.csv', 'w', newline='') as f:
-        ble_thread = threading.Thread(target=do_every, args=(0.02, ble_read, ble_q))
+        ble_thread = threading.Thread(target=do_every, args=(0.01, ble_read, ble_q))
         writer_thread = threading.Thread(target=writer_task, args=(ble_q, f))
 
         ble_thread.start()
