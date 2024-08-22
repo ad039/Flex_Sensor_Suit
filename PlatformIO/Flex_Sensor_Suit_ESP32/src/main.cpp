@@ -49,9 +49,9 @@ TickType_t BLE_UPDATE_INTERVAL;
 
 ////////////////////////////////// Interrupt //////////////////////////////////
 
-//Ticker ticker;
+TimerHandle_t sensorTimer;
 
-void ISRCallback(void);
+void ISRCallback(TimerHandle_t xTimer);
 
 //std::chrono::milliseconds Ts(10);      //sensor sampling time in ms 
 
@@ -112,12 +112,16 @@ void setup()
   Serial.println("Starting...");
   // initialise threads to run infinitley
 
-  xTaskCreate(ble_Task, "BLE Task", 2048, NULL, 2, &bleThread);
+  xTaskCreate(ble_Task, "BLE Task", 2048, NULL, 1, &bleThread);
+  xTaskCreate(sensor_Task, "Sensor Task", 2048, NULL, 2, &sensorThread);
+
+  sensorTimer = xTimerCreate("Sensor Timer", 10, pdTRUE, NULL, ISRCallback);
 
 }
 
 void loop() { 
   // nothing to do here
+  //portSUPPRESS_TICKS_AND_SLEEP( 900 );
 }
 
 
@@ -161,6 +165,8 @@ void ble_Task(void *pvParameters)
     Serial.print("B ");
     Serial.print(millis()-currentMillis);
     Serial.print(" ");
+    Serial.print(temperatureRead());
+    Serial.print(" ");
     Serial.println(uxTaskGetStackHighWaterMark(bleThread));
     //stdio_mutex.unlock();
 #endif
@@ -181,11 +187,24 @@ void sensor_Task(void *pvParameters)
   // Initialise the xLastWakeTime variable with the current time.
   xSensorLastWakeTime = xTaskGetTickCount();
   
+  uint32_t ulInterruptStatus; // variable to recive the notification value
 
   message_sensor *sensorMessage = new message_sensor();
   sensorMessage->data[0] = 0x0001;
 
   while(1) {
+    /* Block indefinitely (without a timeout, so no need to check the function's
+           return value) to wait for a notification. NOTE! Real applications
+           should not block indefinitely, but instead time out occasionally in order
+           to handle error conditions that may prevent the interrupt from sending
+           any more notifications. */
+    xTaskNotifyWaitIndexed( 0,                  /* Wait for 0th Notificaition */
+                            0x00,               /* Don't clear any bits on entry. */
+                            ULONG_MAX,          /* Clear all bits on exit. */
+                            &ulInterruptStatus, /* Receives the notification value. */
+                            portMAX_DELAY );    /* Block indefinitely. */
+
+    
     long currentMillis = millis();
 
     // for debugging ble
@@ -271,7 +290,7 @@ void sensor_Task(void *pvParameters)
     //stdio_mutex.unlock();
 #endif
 
-    vTaskDelayUntil( &xSensorLastWakeTime, xSensor_Frequency );
+    //vTaskDelayUntil( &xSensorLastWakeTime, xSensor_Frequency );
   }
 }
 
@@ -279,10 +298,12 @@ void sensor_Task(void *pvParameters)
 /*
 *   @brief interrupt callback to trigger event call
 */
-void ISRCallback(void)
+void ISRCallback(TimerHandle_t xTimer)
 {
-  // add the sensorTask to the event queue to call in the bleTask thread
-  
+
+   /* Notify the sensor task to take a reading */
+   xTaskNotify(sensorThread, 0, eNoAction);
+
 }
 
 
@@ -335,6 +356,8 @@ void BLE_init()
 
 void characteristicRead(BLEDevice central, BLECharacteristic thisChar) {
   // Read if central asks, queue a new sensorTask event to be excecuted in the bleThread
+  xTaskNotify(sensorThread, 0, eNoAction);
+
 #ifdef DEBUG
   Serial.println("Characteristic Read");
 #endif
@@ -345,8 +368,9 @@ void characteristicSubscribed(BLEDevice central, BLECharacteristic thisChar) {
   // central wrote new value to characteristic, update LED
   Serial.print("Characteristic subscribed. UUID: ");
   Serial.println(thisChar.uuid());
-  // start sensor thread
-  xTaskCreate(sensor_Task, "Sensor Task", 2048, NULL, 1, &sensorThread);
+  // start sensor timer to run every 10 ms and call the sensor task 
+  xTimerStart( sensorTimer, 0 );
+  //xTaskCreate(sensor_Task, "Sensor Task", 2048, NULL, 2, &sensorThread);
 
   // initialise event queue to run every Ts ms
   
@@ -357,8 +381,9 @@ void characteristicUnsubscribed(BLEDevice central, BLECharacteristic thisChar) {
   // central wrote new value to characteristic, update LED
   Serial.print("Characteristic unsubscribed. UUID: ");
   Serial.println(thisChar.uuid());
-  // stop sensor thread
-  vTaskDelete(sensorThread);
+  // stop sensor timer
+  xTimerStop(sensorTimer, 0);
+  //vTaskDelete(sensorThread);
 
   //notification_status = 0;
 }
