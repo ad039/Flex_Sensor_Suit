@@ -33,6 +33,16 @@ sample_frequency = 100 # Hz
 xy = np.loadtxt('./PyTorch/data/Optitrack_Mocap_Data.csv', delimiter=",", dtype=np.float32, skiprows=1)
 
 
+# export training data into a usable format
+hand_centre = xy[:, 12:15]
+shoulder_centre = xy[:, 6:9]
+hand_shoulder_origin = np.subtract(hand_centre, shoulder_centre)
+
+x = np.append(hand_shoulder_origin, xy[:, 37:44], axis=1) 
+headers = "target x (mm), target y (mm), target z (mm), Elbow Sensor (degrees), Shoulder Sensor 1 (degrees), Shoulder Sensor 2 (degrees), Shoulder Sensor 3 (degrees), Forearm Sensor (degrees), Hand Sensor 1 (degrees), Sensor 2 (degrees)"
+
+np.savetxt('Mocap_Data_Alex.csv', x, delimiter=',', header=headers)
+
 #scaling functions
 scaler_x = MinMaxScaler()
 scaler_y = MinMaxScaler()
@@ -51,7 +61,7 @@ class FSSData(Dataset):
         hand_shoulder_origin = np.subtract(hand_centre, shoulder_centre)
         
         self.x = dataset[:, 37:44]
-        self.y = np.concat((hand_shoulder_origin, elbow_shoulder_origin), axis=1)
+        self.y = np.append(hand_shoulder_origin, elbow_shoulder_origin, axis=1)
         
     def __getitem__(self, index):
         return self.x[index], self.y[index]

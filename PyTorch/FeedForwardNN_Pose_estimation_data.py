@@ -17,20 +17,24 @@ num_classes = 3
 num_epochs = 10000
 learing_rate = 0.001
 start_train_time = 0
-end_train_time = 3.5  # min
-start_test_time = 4.15
-end_test_time = 4.3
+end_train_time = 3  # min
+start_test_time = 3
+end_test_time = 3.5
 sample_frequency = 10 # Hz
 activation_function = nn.Tanh()
 num_layers = 30
 
+## Data 1
 # Circle
 # start_test_time = 4.15
 # end_test_time = 4.3
 # Box 3.5-4
 
+## Dataset 2
+# circle: 3 - 3.5
+
 #data loading
-xy = np.loadtxt('./PyTorch/data/Mediapipe_Pose_Estimation_Data.csv', delimiter=",", dtype=np.float32, skiprows=1)
+xy = np.loadtxt('./PyTorch/data/Mediapipe_Pose_Estimation_Data_2.csv', delimiter=",", dtype=np.float32, skiprows=1)
 
 scaler_x = MinMaxScaler()
 scaler_y = MinMaxScaler()

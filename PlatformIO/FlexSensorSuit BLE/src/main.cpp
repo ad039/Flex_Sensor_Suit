@@ -12,7 +12,7 @@ using namespace events;
 #define ADS_sensor
 
 // define debug mode
-//#define DEBUG
+#define DEBUG
 
 
 ////////////////////////////////// ADS Sensors //////////////////////////////////
@@ -199,7 +199,7 @@ void bleTask()
 
 void sensorTask() 
 {
-  //uint32_t currentMillis = Kernel::get_ms_count(); 
+  uint32_t currentMillis = Kernel::get_ms_count(); 
 
   message_sensor *sensorMessage = sensorMpool.try_alloc();
   sensorMessage->data[0] = 0x0001;

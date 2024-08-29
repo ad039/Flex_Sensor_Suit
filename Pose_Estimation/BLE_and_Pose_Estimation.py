@@ -49,7 +49,7 @@ def pose_estimation(queue=queue.LifoQueue):
     mp_pose = mp.solutions.pose
     mp_drawing = mp.solutions.drawing_utils
 
-    cap = cv2.VideoCapture(2)
+    cap = cv2.VideoCapture(0)
 
     time_prev = 0
     i = 0
@@ -74,34 +74,25 @@ def pose_estimation(queue=queue.LifoQueue):
             image.flags.writeable = True
             image_height, image_width, image_depth = image.shape
 
-            hand_centre = (0, 0, 0)
-            normal_vector = [0, 0, 0]
+
+
 
             if results.pose_landmarks is not None:
                 right_shoulder = [results.pose_world_landmarks.landmark[11].x,results.pose_world_landmarks.landmark[11].y, results.pose_world_landmarks.landmark[11].z]
                 right_wrist = [results.pose_world_landmarks.landmark[15].x,results.pose_world_landmarks.landmark[15].y, results.pose_world_landmarks.landmark[15].z]
                 right_index = [results.pose_world_landmarks.landmark[19].x,results.pose_world_landmarks.landmark[19].y, results.pose_world_landmarks.landmark[19].z]
-                #right_pinky = [results.pose_world_landmarks.landmark[17].x,results.pose_world_landmarks.landmark[17].y, results.pose_world_landmarks.landmark[17].z]
+                right_pinky = [results.pose_world_landmarks.landmark[17].x,results.pose_world_landmarks.landmark[17].y, results.pose_world_landmarks.landmark[17].z]
+                
                 
                 hand_centre_world = [np.mean([right_wrist, right_index], axis=0)]
 
-                #normal_vector = np.cross(np.subtract(hand_points[2],hand_points[0]), np.subtract(hand_points[1], hand_points[2]))
-                #normal_vector /= np.linalg.norm(normal_vector)
-                
                 right_hand_norm = np.subtract(hand_centre_world, right_shoulder)
 
-                #queue_array = np.append(right_hand_norm, normal_vector)
-                #print(queue_array)
+
                 queue.put(right_hand_norm)
-                i+=1
-                        
-            #startpoint = (int(hand_centre[0]*image_width), int(hand_centre[1]*image_height))
-            #endpoint = (int(50*normal_vector[0]+startpoint[0]), int(50*normal_vector[1]+startpoint[1]))
-            #thickness = 9
-            #color = (255, 0, 0)
-            #image = cv2.line(image, startpoint, endpoint, color, thickness)
-             
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                
+                
+            #image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
             mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 

@@ -29,5 +29,11 @@ ax2.plot(data_csv.HandFlex1)
 ax2.plot(data_csv.HandFlex2)
 ax2.legend(["ElbowFlex", "ShoulderFlex1","ShoulderFlex2", "ShoulderFlex3", "ForearmFlex", "HandFlex1", "HandFlex2"])
 
+fig3 = plt.figure()
+ax3 = plt.axes()
+ax3.plot(data_csv.O_x)
+ax3.plot(data_csv.O_y)
+ax3.plot(data_csv.O_z)
+ax3.legend(["O_x", "O_y", "O_z"])
 
 plt.show()
