@@ -12,7 +12,7 @@ using namespace events;
 #define ADS_sensor
 
 // define debug mode
-#define DEBUG
+//#define DEBUG
 
 
 ////////////////////////////////// ADS Sensors //////////////////////////////////
@@ -84,6 +84,10 @@ void blePeripheralConnectHandler(BLEDevice central);
 void blePeripheralDisconnectHandler(BLEDevice central);
 
 void BLE_init(void);
+
+
+/* Other */
+
 
 int counter = 0;
 

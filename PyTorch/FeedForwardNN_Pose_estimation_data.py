@@ -14,13 +14,13 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 input_size = 7
 hidden_size = 1000
 num_classes = 3
-num_epochs = 10000
+num_epochs = 1000
 learing_rate = 0.001
-start_train_time = 0
-end_train_time = 3  # min
-start_test_time = 3
-end_test_time = 3.5
-sample_frequency = 10 # Hz
+start_train_time = 2
+end_train_time = 5  # min
+start_test_time = 5.5
+end_test_time = 5.6
+sample_frequency = 1/0.15 # Hz
 activation_function = nn.Tanh()
 num_layers = 30
 
@@ -33,8 +33,11 @@ num_layers = 30
 ## Dataset 2
 # circle: 3 - 3.5
 
+## Dataset 3
+# circle: 3 - 3.5
+
 #data loading
-xy = np.loadtxt('./PyTorch/data/Mediapipe_Pose_Estimation_Data_2.csv', delimiter=",", dtype=np.float32, skiprows=1)
+xy = np.loadtxt('./PyTorch/data/Mediapipe_Pose_Estimation_Data_3.csv', delimiter=",", dtype=np.float32, skiprows=1)
 
 scaler_x = MinMaxScaler()
 scaler_y = MinMaxScaler()
