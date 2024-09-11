@@ -2,6 +2,7 @@
 #include <ArduinoBLE.h>
 #include <Wire.h>
 #include "SparkFun_Displacement_Sensor_Arduino_Library.h" // Click here to get the library: http://librarymanager/All#SparkFun_Displacement_Sensor
+#include "Adafruit_NeoPixel.h"
 
 //define what sensors to use
 //#define ADS_sensor
@@ -79,6 +80,12 @@ void blePeripheralDisconnectHandler(BLEDevice central);
 
 void BLE_init(void);
 
+/* Neopixel */
+// How many internal neopixels do we have? some boards have more than one!
+#define NUMPIXELS        1
+
+Adafruit_NeoPixel pixels(NUMPIXELS, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
+
 /* Other */
 int batteryPin = A2;
 int counter = 0;
@@ -103,12 +110,21 @@ void setup()
   ADS_init();
   #endif
   
-  /* timer pin for measuering Ts on oscilliscope */
-  pinMode(LED_BUILTIN, OUTPUT);
+// Neopixel stuff to indicate a connection
+#if defined(NEOPIXEL_POWER)
+  // If this board has a power control pin, we must set it to output and high
+  // in order to enable the NeoPixels. We put this in an #if defined so it can
+  // be reused for other boards without compilation errors
+  pinMode(NEOPIXEL_POWER, OUTPUT);
+  digitalWrite(NEOPIXEL_POWER, HIGH);
+#endif
 
-  /* LED off*/
-  digitalWrite(LED_BUILTIN, LOW);
+  pixels.begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
+  pixels.setBrightness(20); // not so bright
 
+  // set color to red
+  pixels.fill(0xFF0000);
+  pixels.show();
 
   /* Initialise BLE */
   BLE_init();
@@ -278,7 +294,7 @@ void sensor_Task(void *pvParameters)
     Serial.print("S ");
     Serial.print(millis()-currentMillis);
     Serial.print(" ");
-    Serial.println(uxTaskGetStackHighWaterMark(bleThread));
+    Serial.println(uxTaskGetStackHighWaterMark(sensorThread));
     //stdio_mutex.unlock();
 #endif
 
@@ -293,18 +309,34 @@ void batteryMonitor_Task(void *pvParameters) {
   const TickType_t xbatteryMonitor_Frequency = 1000;
 
   // define a variable to store the battery pin value
-  int batteryPin_Value;
-  byte battery_Percentage;
+  uint16_t batteryPin_Value;
+  uint8_t battery_Percentage;
 
   // Initialise the xLastWakeTime variable with the current time.
   xbatteryMonitor_LastWakeTime = xTaskGetTickCount();
 
 
   while (1) {
-  batteryPin_Value = analogRead(batteryPin);
-  battery_Percentage = (byte)( batteryPin_Value / 65535) * 100;
+  
+  long currentMillis = millis();
+
+  batteryPin_Value = analogRead(A2);
+  battery_Percentage = (( batteryPin_Value * 100 ) / 4096) * 2;
 
   batteryMonitor_Char.writeValue(battery_Percentage);
+
+#ifdef DEBUG
+    //stdio_mutex.lock();
+    Serial.print("BAT ");
+    Serial.print(batteryPin_Value);
+    Serial.print(" ");
+    Serial.print(battery_Percentage);
+    Serial.print(" ");
+    Serial.print(millis()-currentMillis);
+    Serial.print(" ");
+    Serial.println(uxTaskGetStackHighWaterMark(batteryMonitorThread));
+    //stdio_mutex.unlock();
+#endif
 
   vTaskDelayUntil( &xbatteryMonitor_LastWakeTime, xbatteryMonitor_Frequency );
   }
@@ -426,23 +458,29 @@ void batteryMonitor_characteristicUnsubscribed(BLEDevice central, BLECharacteris
 
 void blePeripheralConnectHandler(BLEDevice central) {
   // central connected event handler
-  Serial.println("Connected event, central: ");
-  //Serial.println(central.address());
-  digitalWrite(LED_BUILTIN, HIGH);
+  Serial.println("Connected event, central");
+
+  // set color to green
+  pixels.fill(0x00FF00);
+  pixels.show();
+
   // change the BLE update interval to every 5ms
   BLE_UPDATE_INTERVAL = 5; //ms
   
-  //connectionStatus = 1;
+
 }
 
 void blePeripheralDisconnectHandler(BLEDevice central) {
   // central disconnected event handler
-  Serial.println("Disconnected event, central: ");
-  //Serial.println(central.address());
-  digitalWrite(LED_BUILTIN, LOW);
+  Serial.println("Disconnected event, central");
+
+  // set color to red
+  pixels.fill(0xFF0000);
+  pixels.show();
+
   // change ble update interval back to every 1 second
   BLE_UPDATE_INTERVAL = 1000; //ms
-  //connectionStatus = 0;
+
 }
 
 
