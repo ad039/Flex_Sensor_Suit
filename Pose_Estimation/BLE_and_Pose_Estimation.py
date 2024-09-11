@@ -1,5 +1,6 @@
 import cv2
 import mediapipe as mp
+import matplotlib.pyplot as plt
 import time
 from bluepy import btle
 import numpy as np

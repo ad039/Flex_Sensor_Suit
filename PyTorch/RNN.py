@@ -23,8 +23,8 @@ targets_numpy = targets_numpy.reshape(-1, 1)
 
 scaler_x = MinMaxScaler()
 scaler_y = MinMaxScaler()
-targets_numpy = scaler_x.fit_transform(targets_numpy)
-features_numpy = scaler_y.fit_transform(features_numpy)
+#targets_numpy = scaler_x.fit_transform(targets_numpy)
+#features_numpy = scaler_y.fit_transform(features_numpy)
 
 
 # train test split. Size of train data is 80% and size of test data is 20%. 
@@ -86,7 +86,7 @@ test_loader = DataLoader(test, batch_size = batch_size, shuffle = False)
 # Create RNN
 input_dim = 7    # input dimension
 hidden_dim = 100  # hidden layer dimension
-layer_dim = 1     # number of hidden layers
+layer_dim = 3     # number of hidden layers
 output_dim = 1   # output dimension
 
 model = RNNModel(input_dim, hidden_dim, layer_dim, output_dim)
