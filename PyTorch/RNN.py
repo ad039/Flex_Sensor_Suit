@@ -10,6 +10,11 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 import math
 
+# trianing time
+start_train_time = 4
+end_train_time = 5
+sample_frequency = 100 # Hz
+
 # define device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -26,13 +31,13 @@ targets_numpy = targets_numpy.reshape(-1, 1)
 
 scaler_x = MinMaxScaler()
 scaler_y = MinMaxScaler()
-targets_numpy = scaler_x.fit_transform(targets_numpy)
-features_numpy = scaler_y.fit_transform(features_numpy)
+targets_numpy = scaler_y.fit_transform(targets_numpy)
+features_numpy = scaler_x.fit_transform(features_numpy)
 
 
 # train test split. Size of train data is 80% and size of test data is 20%. 
-features_train, features_test, targets_train, targets_test = train_test_split(features_numpy,
-                                                                             targets_numpy,
+features_train, features_test, targets_train, targets_test = train_test_split(features_numpy[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), :],
+                                                                             targets_numpy[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), :],
                                                                              test_size = 0.2,
                                                                              random_state = 42) 
 
@@ -74,8 +79,8 @@ class RNNModel(nn.Module):
         return out
 
 # batch_size, epoch and iteration
-batch_size = 12000
-n_iters = 1000
+batch_size = 10
+n_iters = 10000
 num_epochs = n_iters / (len(features_train) / batch_size)
 num_epochs = int(num_epochs)
 
@@ -96,10 +101,10 @@ output_dim = 1   # output dimension
 model = RNNModel(input_dim, hidden_dim, layer_dim, output_dim).to(device)
 
 # Cross Entropy Loss 
-error = nn.L1Loss()
+error = nn.MSELoss()
 
 # SGD Optimizer
-learning_rate = 0.05
+learning_rate = 0.01
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
 
@@ -195,7 +200,7 @@ plt.show()
 ## Test ##
 
 start_test_time = 4
-end_test_time = 6
+end_test_time = 6.18
 sample_frequency = 100 # Hz
 
 # Circle
@@ -212,8 +217,10 @@ with torch.no_grad():
     test_num_samples = test_x.size(0)
     test_y_pred = torch.zeros_like(test_y)
     
-    test_y_pred = model(test_x).to(device)
+    for i in range(round(test_num_samples/batch_size)):
+        test_y_pred[batch_size*i:batch_size*(i+1), :] = model(test_x[batch_size*i:batch_size*(i+1), :].reshape(1, batch_size, 7)).to(device)
 
+    print(test_y.cpu().numpy().shape)
     test_y_numpy = scaler_y.inverse_transform(test_y.cpu().numpy())
     test_y_pred_numpy = scaler_y.inverse_transform(test_y_pred.cpu().numpy())
 
@@ -229,41 +236,24 @@ with torch.no_grad():
     for i in range(2, n_samples):
         test_y_pred_numpy_smoothed[i,:] = (alpha)*test_y_pred_numpy[i,:] + (1-alpha)*test_y_pred_numpy_smoothed[i-1,:]
 
-
-    # calculate RMSE
-    RMSE_x = math.sqrt(np.square(np.subtract(test_y_numpy[:,0],test_y_pred_numpy[:,0])).mean())
-    RMSE_y = math.sqrt(np.square(np.subtract(test_y_numpy[:,1],test_y_pred_numpy[:,1])).mean())
-    RMSE_z = math.sqrt(np.square(np.subtract(test_y_numpy[:,2],test_y_pred_numpy[:,2])).mean())
-    print(f'RMSE in x: {RMSE_x:.4f}, RMSE in y: {RMSE_y:.4f}, RMSE in z: {RMSE_z:.4f}')
-
-    plot_labels = [f'X, RMSE: {RMSE_x:.1f}', f'Y, RMSE: {RMSE_y:.1f}', f'Z, RMSE: {RMSE_z:.1f}']
     
     test_time = np.arange(test_y_numpy.shape[0])/sample_frequency   
     test_time = test_time.reshape(test_y_numpy.shape[0])
 
-    # plot
-    fig, axs = plt.subplots(1, 3)
-    for j in range(3):
-        axs[j].plot(test_time, test_y_numpy[:, j])
-        axs[j].plot(test_time, test_y_pred_numpy[:, j])
-        axs[j].plot(test_time, test_y_pred_numpy_smoothed[:, j])
-        axs[j].legend(["Target", "Prediction", "Prediction Smoothed"])
-        axs[j].set_title(plot_labels[j])
-        axs[j].set_xlabel("Time (s)")
-    
-    axs[0].set_ylabel("Position (mm)")
-    
-    fig2 = plt.figure()
-    ax2 = plt.axes(projection='3d')  
-    ax2.plot3D(test_y_numpy[:,0], test_y_numpy[:,1], test_y_numpy[:,2])
-    ax2.plot3D(test_y_pred_numpy[:,0], test_y_pred_numpy[:,1], test_y_pred_numpy[:,2])
-    ax2.plot3D(test_y_pred_numpy_smoothed[:,0], test_y_pred_numpy_smoothed[:,1], test_y_pred_numpy_smoothed[:,2])
-    ax2.set_xlabel('x (mm)')
-    ax2.set_ylabel('y (mm)')
-    ax2.set_zlabel('z (mm)')
-    ax2.legend(["Target", "Prediction", "Prediction Smoothed"])
+# calculate RMSE
+    RMSE_x = math.sqrt(np.square(np.subtract(test_y_numpy[:,0],test_y_pred_numpy[:,0])).mean())
+    MAX_x = np.max(np.subtract(test_y_numpy[:,0],test_y_pred_numpy[:,0]))
 
-    #ax2.set_title(f'3D Plot of Travel Path. Input size: {input_size}, Hidden Layer Size: {hidden_size}, Num Epochs: {num_epochs}, Activation Fn: {activation_function}, Num Layers: {num_layers}')
-    
+    print(f'RMSE: {RMSE_x:.4f}, Max Error: {MAX_x:.4f}')
+
+    # plot
+    plt.plot(test_time, test_y_numpy)
+    plt.plot(test_time, test_y_pred_numpy)
+    plt.plot(test_time, test_y_pred_numpy_smoothed)
+    plt.legend(["Target", "Prediction", "Prediction Smoothed"])
+
+    plt.title(f'RMSE: {RMSE_x:.4f}, Max Error: {MAX_x:.4f}')
+    plt.xlabel("Time (s)")
+    plt.ylabel("Position (mm)")
 
     plt.show()
