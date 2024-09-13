@@ -95,7 +95,7 @@ test_loader = DataLoader(test, batch_size = batch_size, shuffle = False)
 # Create RNN
 input_dim = 7    # input dimension
 hidden_dim = 100  # hidden layer dimension
-layer_dim = 1     # number of hidden layers
+layer_dim = 3     # number of hidden layers
 output_dim = 1   # output dimension
 
 model = RNNModel(input_dim, hidden_dim, layer_dim, output_dim).to(device)
