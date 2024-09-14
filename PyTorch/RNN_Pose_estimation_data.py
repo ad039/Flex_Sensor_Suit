@@ -11,9 +11,9 @@ from sklearn.preprocessing import MinMaxScaler
 import math
 
 # trianing time
-start_train_time = 4
-end_train_time = 5
-sample_frequency = 100 # Hz
+start_train_time = 0
+end_train_time = 4
+sample_frequency = 1/0.15 # Hz
 
 # define device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -21,11 +21,11 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Prepare Dataset
 # load data
-dataset = pd.read_csv(r"PyTorch/data/Mocap_Data_Alex.csv",dtype = np.float32)
+dataset = pd.read_csv(r"PyTorch/data/Mediapipe_Pose_Estimation_Data.csv",dtype = np.float32)
 
 # split data into features(pixels) and labels(numbers from 0 to 9)
-targets_numpy = dataset['target x'].to_numpy()
-features_numpy = dataset[dataset.columns[3:10]].to_numpy()
+targets_numpy = dataset['P_x'].to_numpy()*1000
+features_numpy = dataset[dataset.columns[1:8]].to_numpy()
 
 targets_numpy = targets_numpy.reshape(-1, 1)
 
@@ -39,7 +39,8 @@ features_numpy = scaler_x.fit_transform(features_numpy)
 features_train, features_test, targets_train, targets_test = train_test_split(features_numpy[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), :],
                                                                              targets_numpy[round(start_train_time*sample_frequency*60):round(end_train_time*sample_frequency*60), :],
                                                                              test_size = 0.2,
-                                                                             random_state = 42) 
+                                                                             random_state = 42, 
+                                                                             shuffle=True) 
 
 # create feature and targets tensor for train set. As you remember we need variable to accumulate gradients. Therefore first we create tensor, then we will create variable
 featuresTrain = torch.from_numpy(features_train)
@@ -79,7 +80,7 @@ class RNNModel(nn.Module):
         return out
 
 # batch_size, epoch and iteration
-batch_size = 10
+batch_size = 5
 n_iters = 10000
 num_epochs = n_iters / (len(features_train) / batch_size)
 num_epochs = int(num_epochs)
@@ -94,14 +95,14 @@ test_loader = DataLoader(test, batch_size = batch_size, shuffle = False)
     
 # Create RNN
 input_dim = 7    # input dimension
-hidden_dim = 100  # hidden layer dimension
+hidden_dim = 10000  # hidden layer dimension
 layer_dim = 3     # number of hidden layers
 output_dim = 1   # output dimension
 
 model = RNNModel(input_dim, hidden_dim, layer_dim, output_dim).to(device)
 
 # Cross Entropy Loss 
-error = nn.MSELoss()
+error = nn.SmoothL1Loss()
 
 # SGD Optimizer
 learning_rate = 0.01
@@ -199,14 +200,22 @@ plt.show()
 
 ## Test ##
 
-start_test_time = 4
-end_test_time = 6.18
-sample_frequency = 100 # Hz
+start_test_time = 3
+end_test_time = 3.5
+sample_frequency = 1/0.15 # Hz
 
+## Data 1
 # Circle
-# start_test_time = 6.07
-#end_test_time = 6.18
-# Box 5-5.5 min
+# start_test_time = 4.15
+# end_test_time = 4.3
+# Box 3.5-4
+
+## Dataset 2
+# circle: 3 - 3.5
+
+## Dataset 3
+# circle: 3 - 3.5
+
 
 test_x = torch.from_numpy(features_numpy[round(start_test_time*sample_frequency*60):round(end_test_time*sample_frequency*60), :]).to(device)
 test_y = torch.from_numpy(targets_numpy[round(start_test_time*sample_frequency*60):round(end_test_time*sample_frequency*60), :]).to(device)
