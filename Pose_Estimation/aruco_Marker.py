@@ -26,8 +26,8 @@ detector = cv2.aruco.ArucoDetector(dictionary, parameters)
 marker_size = 0.0785
  
 # Calibration parameters yaml file
-camera_calibration_parameters_filename_logi = 'Pose_Estimation/Camera_Calibration/calibration_chessboard_logi.yaml'
-camera_calibration_parameters_filename_webc = 'Pose_Estimation/Camera_Calibration/calibration_chessboard_webc.yaml'
+camera_calibration_parameters_filename_logi_1 = 'Pose_Estimation/Camera_Calibration/calibration_chessboard_logi_2.yaml'
+camera_calibration_parameters_filename_logi_2 = 'Pose_Estimation/Camera_Calibration/calibration_chessboard_logi_1.yaml'
 
 def euler_from_quaternion(x, y, z, w):
   """
@@ -161,15 +161,15 @@ def main():
  
   # Load the camera parameters from the saved file
   cv_file_logi = cv2.FileStorage(
-    camera_calibration_parameters_filename_logi, cv2.FILE_STORAGE_READ) 
-  mtx_logi = cv_file_logi.getNode('K').mat()
-  dst_logi = cv_file_logi.getNode('D').mat()
+    camera_calibration_parameters_filename_logi_1, cv2.FILE_STORAGE_READ) 
+  mtx_1 = cv_file_logi.getNode('K').mat()
+  dst_1 = cv_file_logi.getNode('D').mat()
   cv_file_logi.release()
 
   cv_file_webc = cv2.FileStorage(
-  camera_calibration_parameters_filename_webc, cv2.FILE_STORAGE_READ) 
-  mtx_webc = cv_file_webc.getNode('K').mat()
-  dst_webc = cv_file_webc.getNode('D').mat()
+  camera_calibration_parameters_filename_logi_2, cv2.FILE_STORAGE_READ) 
+  mtx_2 = cv_file_webc.getNode('K').mat()
+  dst_2 = cv_file_webc.getNode('D').mat()
   cv_file_webc.release()
 
   marker_points = np.array([[-marker_size / 2, marker_size / 2, 0],
@@ -186,29 +186,29 @@ def main():
     # Capture frame-by-frame
     # This method returns True/False as well
     # as the video frame.
-    ret, frame_logi = cap1.read() 
-    ret, frame_webc = cap2.read()  
+    ret, frame_1 = cap1.read() 
+    ret, frame_2 = cap2.read()  
 
-    frame_logi, xyz_logi, rpy_logi, vecs_logi = aruco_pose_estimation(frame_logi, mtx_logi, dst_logi)
-    frame_webc, xyz_webc, rpy_webc, vecs_webc = aruco_pose_estimation(frame_webc, mtx_webc, dst_webc)
+    frame_1, xyz_1, rpy_1, vecs_1 = aruco_pose_estimation(frame_1, mtx_1, dst_1)
+    frame_2, xyz_2, rpy_2, vecs_2 = aruco_pose_estimation(frame_2, mtx_2, dst_2)
 
     # Display the resulting frame
-    cv2.imshow('frame logi',frame_logi)
-    cv2.imshow('frame webc',frame_webc)
+    cv2.imshow('frame 1', frame_1)
+    cv2.imshow('frame 2', frame_2)
     
-    #print(vecs_logi, vecs_webc)  
-    print(vecs_logi)
+    #print(vecs_1, vecs_2)  
+    print(vecs_1)
     '''
-    theta_logi = np.deg2rad(-vecs_logi[3]+180)
+    theta_logi = np.deg2rad(-vecs_1[3]+180)
     rotation_matrix_logi = np.array([[np.cos(theta_logi), 0, np.sin(theta_logi)],
                                      [0, 1, 0],
                                      [-np.sin(theta_logi), 0, np.cos(theta_logi)]])
-    print((vecs_logi[0:3].reshape(3, -1)).shape)
+    print((vecs_1[0:3].reshape(3, -1)).shape)
     
-    camera_logi_vec = np.matmul(rotation_matrix_logi, (vecs_logi[0:3].reshape(3, -1)))
+    camera_logi_vec = np.matmul(rotation_matrix_logi, (vecs_1[0:3].reshape(3, -1)))
     '''
-    print(vecs_logi)
-    print(xyz_logi, rpy_logi)
+    print(vecs_1)
+    print(xyz_1, rpy_1)
 
     # If "q" is pressed on the keyboard, 
     # exit this loop
