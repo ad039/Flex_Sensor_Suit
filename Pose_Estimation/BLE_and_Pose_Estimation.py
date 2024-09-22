@@ -19,8 +19,9 @@ def ble_task(queue=queue.LifoQueue):
     # MAC addresses for ble chips
     # "29:F0:E3:F9:C9:CD" for Arduino Nano BLE
     # "93:43:92:07:91:11" for Xioa nrf52 BLE 
+    # "F4:12:FA:5A:39:51" for esp32-s3 qt py
 
-    FlexSensorSuit = btle.Peripheral("93:43:92:07:91:11")
+    FlexSensorSuit = btle.Peripheral("F4:12:FA:5A:39:51")
 
     print("connected")
     FlexSensorSuit.getServices()
