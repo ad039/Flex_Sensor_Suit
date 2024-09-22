@@ -19,7 +19,7 @@ import numpy as np
 def ble_task(queue=queue.LifoQueue):
     global ready
 
-    print("Connecting...")
+    print("Connecting...", end='\r')
 
     # MAC addresses for ble chips
     # "29:F0:E3:F9:C9:CD" for Arduino Nano BLE
@@ -29,10 +29,10 @@ def ble_task(queue=queue.LifoQueue):
 
     FlexSensorSuit = btle.Peripheral("F4:12:FA:5A:39:51")
 
-    print("connected")
+    print("connected", end='\r')
     FlexSensorSuit.getServices()
     flexSensorService = FlexSensorSuit.getServiceByUUID("0000fff0-0000-1000-8000-00805f9b34fb")
-    print("connected to service")
+    print("connected to service", end='\r')
 
     flexSensorCharValue = flexSensorService.getCharacteristics()[0]
     print("connected to characteristic")
@@ -55,20 +55,21 @@ def ble_task(queue=queue.LifoQueue):
                 break
         
     FlexSensorSuit.disconnect()
-
+    return
 
 import cv2
 import mediapipe as mp
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 # function to run pose detection using mediapipe
 def pose_estimation(queue=queue.LifoQueue):
-    global ready
-
 
     mp_pose = mp.solutions.pose
     mp_drawing = mp.solutions.drawing_utils
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(2)
 
     time_prev = 0
     i = 0
@@ -118,6 +119,8 @@ def pose_estimation(queue=queue.LifoQueue):
                 break
 
     cap.release()
+    cv2.destroyAllWindows()
+    return
 
 
 # function to control reading the queues and sending that data to a csv file (output.csv) for training
@@ -129,7 +132,7 @@ def writer_task_train(ble_queue=queue.Queue, pose_queue=queue.Queue, writer=None
         # set writer ready event
         writer_ready_evnt.set()
 
-        print(f'loop: {(time.perf_counter()-prevTime)*1000:.3f}')
+        print(f'loop: {(time.perf_counter()-prevTime)*1000:.3f}', end='\r')
         prevTime = time.perf_counter()
         # read the queues from BLE and Pose Estimation
         pose_val = pose_queue.get()
@@ -154,7 +157,7 @@ def writer_task_train(ble_queue=queue.Queue, pose_queue=queue.Queue, writer=None
         if (time.perf_counter() - startTime > 0.5*60):
             train_over_evnt.set()
             break
-
+    return
 
 # function to control reading the queues and sending that data to a csv file (output_test.csv) for testing
 def writer_task_test(ble_queue=queue.Queue, writer=None):
@@ -165,7 +168,7 @@ def writer_task_test(ble_queue=queue.Queue, writer=None):
         # set writer ready event
         writer_ready_evnt.set()
 
-        print(f'loop: {(time.perf_counter()-prevTime)*1000:.3f}')
+        print(f'loop: {(time.perf_counter()-prevTime)*1000:.3f}', end='\r')
         prevTime = time.perf_counter()
         # read the queues from BLE and Pose Estimation
         ble_val = ble_queue.get()
@@ -199,7 +202,7 @@ def writer_task_test(ble_queue=queue.Queue, writer=None):
         if (time.perf_counter() - startTime > 0.5*60):
             test_over_evnt.set()
             break
-
+    return
 
 # function to train the random forest regressor network
 import pandas as pd
@@ -214,7 +217,6 @@ def rfr_train(model_x=RandomForestRegressor, model_y=RandomForestRegressor, mode
                "shoulder_3", "forearm", "hand_1", "hand_2"]
     
     data = pd.read_csv('./output.csv', header=None, names=columns)
-    print(data.head())
 
     X_1 = data[['elbow', 'shoulder_1', 'shoulder_2', 
                'shoulder_3', 'forearm', 'hand_1', 'hand_2']]
@@ -259,8 +261,6 @@ def rfr_train(model_x=RandomForestRegressor, model_y=RandomForestRegressor, mode
 
 
 
-
-
 # main function
 if __name__ == "__main__":
 
@@ -275,6 +275,13 @@ if __name__ == "__main__":
 
     with open('./output.csv', 'w', newline='') as f:
 
+        print("Collecting Training Data...\n")
+
+        # clear all events
+        train_over_evnt.clear()
+        writer_ready_evnt.clear()
+        test_over_evnt.clear()
+
         writer = csv.writer(f)
 
         ble_thread = Thread(target=ble_task, args=(ble_q,))
@@ -284,7 +291,7 @@ if __name__ == "__main__":
         ble_thread.start()
         pose_estimation_thread.start()
 
-        time.sleep(10)
+        time.sleep(5)
         writer_thread.start()
 
         ble_thread.join()
@@ -293,7 +300,8 @@ if __name__ == "__main__":
 
         f.close()
     
-    
+    print("\nTraining RFR Networks...\n")
+
     # initailise RFR models
     model_x = RandomForestRegressor(n_estimators=100, random_state=42)
     model_y = RandomForestRegressor(n_estimators=100, random_state=42)
@@ -306,9 +314,13 @@ if __name__ == "__main__":
 
     # begin prediction of hand position
     with open('./output_test.csv', 'w', newline='') as f:
-        
+
+        print("\nTesting...\n")
+
+        # clear all events
         train_over_evnt.clear()
         writer_ready_evnt.clear()
+        test_over_evnt.clear()
         
         writer = csv.writer(f)
 
@@ -317,7 +329,7 @@ if __name__ == "__main__":
 
         ble_thread.start()
 
-        time.sleep(10)
+        time.sleep(5)
         writer_thread.start()
 
         ble_thread.join()
