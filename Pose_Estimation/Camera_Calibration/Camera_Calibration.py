@@ -21,7 +21,7 @@ number_of_squares_X = 10 # Number of chessboard squares along the x-axis
 number_of_squares_Y = 7  # Number of chessboard squares along the y-axis
 nX = number_of_squares_X - 1 # Number of interior corners along x-axis
 nY = number_of_squares_Y - 1 # Number of interior corners along y-axis
-square_size = 0.025 # Size, in meters, of a square side 
+square_size = 0.024 # Size, in meters, of a square side 
   
 # Set termination criteria. We stop either when an accuracy is reached or when
 # we have finished a certain number of iterations.
@@ -45,7 +45,7 @@ image_points = []
 def main():
       
   # Get the file path for images in the current directory
-  images = glob.glob('Pose_Estimation/Camera_Calibration/Logitech_1/*.jpg')
+  images = glob.glob('Pose_Estimation/Camera_Calibration/Logitech_2/*.jpg')
       
   # Go through each chessboard image, one by one
   for image_file in images:
@@ -88,13 +88,13 @@ def main():
                                                     None)
  
   # Save parameters to a file
-  cv_file = cv2.FileStorage('Pose_Estimation/Camera_Calibration/calibration_chessboard_logi_1.yaml', cv2.FILE_STORAGE_WRITE)
+  cv_file = cv2.FileStorage('Pose_Estimation/Camera_Calibration/calibration_chessboard_logi_2.yaml', cv2.FILE_STORAGE_WRITE)
   cv_file.write('K', mtx)
   cv_file.write('D', dist)
   cv_file.release()
   
   # Load the parameters from the saved file
-  cv_file = cv2.FileStorage('Pose_Estimation/Camera_Calibration/calibration_chessboard_logi_1.yaml', cv2.FILE_STORAGE_READ) 
+  cv_file = cv2.FileStorage('Pose_Estimation/Camera_Calibration/calibration_chessboard_logi_2.yaml', cv2.FILE_STORAGE_READ) 
   mtx = cv_file.getNode('K').mat()
   dst = cv_file.getNode('D').mat()
   cv_file.release()

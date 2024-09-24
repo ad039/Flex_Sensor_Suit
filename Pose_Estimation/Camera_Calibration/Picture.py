@@ -2,7 +2,7 @@ import cv2
 import time
 
 cap1 = cv2.VideoCapture(0)
-cap2 = cv2.VideoCapture(2)
+cap2 = cv2.VideoCapture(4)
 
 count = 0
 
@@ -14,12 +14,14 @@ while (cap1.isOpened()):# and cap2.isOpened()):
     success1, image1 = cap1.read()
     success2, image2 = cap2.read()
     
-    cv2.imshow('Logitech', image1)
-    cv2.imshow('Webcam', image2)
+    cv2.imshow('Cam 1', image1)
+    cv2.imshow('Cam 2', image2)
 
     
     if (time.perf_counter() - prevTime) > 5:
         prevTime = time.perf_counter()
+
+        print("capture ", count)
 
         name1 = "Pose_Estimation/Camera_Calibration/Logitech_1/%d.jpg"%count
         name2 = "Pose_Estimation/Camera_Calibration/Logitech_2/%d.jpg"%count
