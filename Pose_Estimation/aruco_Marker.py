@@ -153,7 +153,13 @@ def main():
    
   # Start the video stream
   cap1 = cv2.VideoCapture(0)
-  cap2 = cv2.VideoCapture(4)
+  cap2 = cv2.VideoCapture(2)
+
+  cap1.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+  cap1.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+
+  cap2.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+  cap2.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
    
   while (cap1.isOpened() and cap2.isOpened()):
   
@@ -165,6 +171,13 @@ def main():
 
     frame_1, T_logi1_marker = aruco_pose_estimation(frame_1, mtx_1, dst_1)
     frame_2, T_logi2_marker = aruco_pose_estimation(frame_2, mtx_2, dst_2)
+
+    # ROTATE AND RESIZE
+    frame_1 = cv2.rotate(frame_1, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    frame_2 = cv2.rotate(frame_2, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    
+    frame_1 = cv2.resize(frame_1, (340, 600))
+    frame_2 = cv2.resize(frame_2, (340, 600))
 
     # Display the resulting frame
     cv2.imshow('frame 1', frame_1)
