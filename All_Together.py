@@ -4,6 +4,7 @@ from sklearn.preprocessing import StandardScaler
 import numpy as np
 
 
+
 # read BLE
 from bluepy import btle
 import time
@@ -60,7 +61,7 @@ def ble_task(queue=queue.LifoQueue):
 import cv2
 import mediapipe as mp
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 # function to run pose detection using mediapipe
@@ -154,7 +155,7 @@ def writer_task_train(ble_queue=queue.Queue, pose_queue=queue.Queue, writer=None
         writer.writerow(queue_val)
         #print(f'duration: {(time.perf_counter()-prevTime)*1000:.3f}')
 
-        if (time.perf_counter() - startTime > 0.5*60):
+        if (time.perf_counter() - startTime > 0.1*60):
             train_over_evnt.set()
             break
     return
@@ -163,6 +164,17 @@ def writer_task_train(ble_queue=queue.Queue, pose_queue=queue.Queue, writer=None
 def writer_task_test(ble_queue=queue.Queue, writer=None):
     prevTime = 0
     startTime = time.perf_counter()
+
+    fig = plt.figure()
+    ax = plt.axes(projection='3d')  
+    ax.set_xlabel('x (mm)')
+    ax.set_ylabel('y (mm)')
+    ax.set_zlabel('z (mm)')
+
+    plt.draw()
+
+    # blit
+    points,  = ax.plot3D(0, 0, 0, animated=True)
 
     while(True):
         # set writer ready event
@@ -198,6 +210,10 @@ def writer_task_test(ble_queue=queue.Queue, writer=None):
         #print(writer_val)
         writer.writerow(writer_val)
         #print(f'duration: {(time.perf_counter()-prevTime)*1000:.3f}')
+
+        points.set_data(x_pred, y_pred, z_pred)
+
+        ax.draw_animated()
 
         if (time.perf_counter() - startTime > 0.5*60):
             test_over_evnt.set()
@@ -325,15 +341,14 @@ if __name__ == "__main__":
         writer = csv.writer(f)
 
         ble_thread = Thread(target=ble_task, args=(ble_q,))
-        writer_thread = Thread(target=writer_task_test, args=(ble_q, writer))
 
         ble_thread.start()
 
         time.sleep(5)
-        writer_thread.start()
+        writer_task_test(ble_q, writer)
 
         ble_thread.join()
-        writer_thread.join()
+
 
         f.close()
 
