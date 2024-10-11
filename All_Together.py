@@ -2,6 +2,7 @@ import joblib
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 import numpy as np
+import matplotlib.animation as animation
 
 
 
@@ -28,7 +29,7 @@ def ble_task(queue=queue.LifoQueue):
     # "F4:12:FA:5A:39:51" for esp32-s3 qt py
 
 
-    FlexSensorSuit = btle.Peripheral("F4:12:FA:5A:39:51")
+    FlexSensorSuit = btle.Peripheral("93:43:92:07:91:11")
 
     print("connected", end='\r')
     FlexSensorSuit.getServices()
@@ -155,7 +156,7 @@ def writer_task_train(ble_queue=queue.Queue, pose_queue=queue.Queue, writer=None
         writer.writerow(queue_val)
         #print(f'duration: {(time.perf_counter()-prevTime)*1000:.3f}')
 
-        if (time.perf_counter() - startTime > 0.1*60):
+        if (time.perf_counter() - startTime > 2*60):
             train_over_evnt.set()
             break
     return
@@ -164,17 +165,6 @@ def writer_task_train(ble_queue=queue.Queue, pose_queue=queue.Queue, writer=None
 def writer_task_test(ble_queue=queue.Queue, writer=None):
     prevTime = 0
     startTime = time.perf_counter()
-
-    fig = plt.figure()
-    ax = plt.axes(projection='3d')  
-    ax.set_xlabel('x (mm)')
-    ax.set_ylabel('y (mm)')
-    ax.set_zlabel('z (mm)')
-
-    plt.draw()
-
-    # blit
-    points,  = ax.plot3D(0, 0, 0, animated=True)
 
     while(True):
         # set writer ready event
@@ -211,11 +201,8 @@ def writer_task_test(ble_queue=queue.Queue, writer=None):
         writer.writerow(writer_val)
         #print(f'duration: {(time.perf_counter()-prevTime)*1000:.3f}')
 
-        points.set_data(x_pred, y_pred, z_pred)
 
-        ax.draw_animated()
-
-        if (time.perf_counter() - startTime > 0.5*60):
+        if (time.perf_counter() - startTime > 0.3*60):
             test_over_evnt.set()
             break
     return
@@ -319,9 +306,9 @@ if __name__ == "__main__":
     print("\nTraining RFR Networks...\n")
 
     # initailise RFR models
-    model_x = RandomForestRegressor(n_estimators=100, random_state=42)
-    model_y = RandomForestRegressor(n_estimators=100, random_state=42)
-    model_z = RandomForestRegressor(n_estimators=100, random_state=42)
+    model_x = RandomForestRegressor(n_estimators=500, random_state=42)
+    model_y = RandomForestRegressor(n_estimators=500, random_state=42)
+    model_z = RandomForestRegressor(n_estimators=500, random_state=42)
 
     scaler = StandardScaler()
 
@@ -347,7 +334,31 @@ if __name__ == "__main__":
         time.sleep(5)
         writer_task_test(ble_q, writer)
 
+        
         ble_thread.join()
+
+        print("\nDone Testing, Plotting...\n")
+
+        # plot test data
+        # read the data from the file
+        columns = ["target_x", "target_y", "target_z",
+                "elbow", "shoulder_1", "shoulder_2", 
+                "shoulder_3", "forearm", "hand_1", "hand_2"]
+        
+        data = pd.read_csv('./output_test.csv', header=None, names=columns)
+        
+        x = data["target_x"]
+        y = data["target_y"]
+        z = data["target_z"]
+
+        fig = plt.figure()
+        ax = plt.axes(projection='3d')  
+        ax.set_xlabel('x (mm)')
+        ax.set_ylabel('y (mm)')
+        ax.set_zlabel('z (mm)')
+
+        ax.plot3D(x, y, z)
+        plt.show()
 
 
         f.close()
