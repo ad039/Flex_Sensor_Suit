@@ -12,7 +12,7 @@ using namespace events;
 #define ADS_sensor
 
 // define debug mode
-//#define DEBUG
+#define DEBUG
 
 
 ////////////////////////////////// ADS Sensors //////////////////////////////////
@@ -32,7 +32,7 @@ void ADS_init();
 ////////////////////////////////// RTOS //////////////////////////////////
 Thread bleThread(osPriorityNormal1);
 Thread watchdogThread(osPriorityNormal2);
-
+Thread batteryMonitor_Thread(osPriorityNormal);
 
 
 Mutex stdio_mutex;
@@ -51,6 +51,7 @@ EventQueue eventQueue;
 void bleTask();
 void sensorTask();
 void watchdogTask();
+void batteryMonitor_Task();
 
 uint32_t BLE_UPDATE_INTERVAL;
 
@@ -64,7 +65,8 @@ std::chrono::milliseconds Ts(10);      //sensor sampling time in ms
 
 ////////////////////////////////// BLE //////////////////////////////////
 BLEService flexSensorService("0000fff0-0000-1000-8000-00805f9b34fb");
-BLECharacteristic flexSensorCharacteristic("0000fff1-0000-1000-8000-00805f9b34fb", BLERead | BLENotify, 14);
+BLECharacteristic sensor_Char("0000fff1-0000-1000-8000-00805f9b34fb", BLERead | BLENotify, 14);
+BLECharacteristic batteryMonitor_Char("0000fff2-0000-1000-8000-00805f9b34fb", BLENotify, 1);
 
 
 // Advertising parameters should have a global scope. Do NOT define them in 'setup' or in 'loop'
@@ -75,9 +77,13 @@ uint8_t notification_status = 0;
 
 void characteristicRead(BLEDevice central, BLECharacteristic thisChar);
 
-void characteristicSubscribed(BLEDevice central, BLECharacteristic thisChar);
+void sensor_characteristicSubscribed(BLEDevice central, BLECharacteristic thisChar);
 
-void characteristicUnsubscribed(BLEDevice central, BLECharacteristic thisChar);
+void sensor_characteristicUnsubscribed(BLEDevice central, BLECharacteristic thisChar);
+
+void batteryMonitor_characteristicSubscribed(BLEDevice central, BLECharacteristic thisChar);
+
+void batteryMonitor_characteristicUnsubscribed(BLEDevice central, BLECharacteristic thisChar);
 
 void blePeripheralConnectHandler(BLEDevice central);
 
@@ -88,7 +94,7 @@ void BLE_init(void);
 
 /* Other */
 
-
+int batteryPin = PIN_VBAT;
 int counter = 0;
 
 ////////////////////////////////// Setup //////////////////////////////////
@@ -178,7 +184,7 @@ void bleTask()
     message_sensor *sensorMessage = NULL;
     if (sensorQueue.try_get(&sensorMessage)) {
       ble_mutex.lock();
-      flexSensorCharacteristic.writeValue(sensorMessage->data, 14);
+      sensor_Char.writeValue(sensorMessage->data, 14);
       ble_mutex.unlock();
 
       sensorMpool.free(sensorMessage);
@@ -292,7 +298,49 @@ void sensorTask()
   //thread_sleep_for(10);
 }
 
+/* task to read the battery monitor */
+void batteryMonitor_Task() {
 
+  // define a variable to store the battery pin value
+  uint16_t batteryPin_Value;
+  uint8_t battery_Percentage;
+  float battery_Voltage;
+  float battery_lower_limit = 3.0;
+  float battery_upper_limit = 4.2;
+
+  // set pin 14 to low to get voltage output
+  pinMode(P0_14, OUTPUT);
+  digitalWrite(P0_14, LOW);
+
+  while (1) {
+  
+  long currentMillis = millis();
+
+  batteryPin_Value = analogRead(batteryPin);
+  battery_Voltage = (( batteryPin_Value ) / 1024.0) * 1510.0/510.0 * 3.3;
+  battery_Percentage = (battery_Voltage - battery_lower_limit)/(battery_upper_limit - battery_lower_limit) * 100;
+
+  batteryMonitor_Char.writeValue(battery_Percentage);
+
+#ifdef DEBUG
+    //stdio_mutex.lock();
+    Serial.print("BAT ");
+    Serial.print(batteryPin_Value);
+    Serial.print(" ");
+    Serial.print(battery_Voltage);
+    Serial.print(" ");
+    Serial.print(battery_Percentage);
+    Serial.print(" ");
+    Serial.print(millis()-currentMillis);
+    Serial.print(" ");
+    Serial.println(batteryMonitor_Thread.max_stack());
+    //stdio_mutex.unlock();
+#endif
+
+  thread_sleep_for(1000);
+  }
+
+}
 /*
 *   @brief interrupt callback to trigger event call
 */
@@ -322,21 +370,27 @@ void BLE_init()
   // set the UUID for the service this peripheral advertises:
   BLE.setAdvertisedService(flexSensorService);
 
-  flexSensorService.addCharacteristic(flexSensorCharacteristic);
+  flexSensorService.addCharacteristic(sensor_Char);
+  flexSensorService.addCharacteristic(batteryMonitor_Char);
 
   // add the service
   BLE.addService(flexSensorService);
   
-  flexSensorCharacteristic.writeValue((byte)0x00, 14);
+  
+  int16_t flexSensorChar_init[] = {0x0000, 0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006};
+  sensor_Char.writeValue(flexSensorChar_init, 14);
 
   // set BLE event handlers
   BLE.setEventHandler( BLEConnected,  blePeripheralConnectHandler);
   BLE.setEventHandler( BLEDisconnected,  blePeripheralDisconnectHandler);
 
-  flexSensorCharacteristic.setEventHandler( BLESubscribed, characteristicSubscribed);
-  flexSensorCharacteristic.setEventHandler( BLEUnsubscribed, characteristicUnsubscribed);
-  flexSensorCharacteristic.setEventHandler( BLERead, characteristicRead);
+  sensor_Char.setEventHandler( BLESubscribed, sensor_characteristicSubscribed);
+  sensor_Char.setEventHandler( BLEUnsubscribed, sensor_characteristicUnsubscribed);
+  sensor_Char.setEventHandler( BLERead, characteristicRead);
   
+  batteryMonitor_Char.setEventHandler( BLESubscribed, batteryMonitor_characteristicSubscribed);
+  batteryMonitor_Char.setEventHandler( BLEUnsubscribed, batteryMonitor_characteristicUnsubscribed);
+
   // set the connection interval from between 7.5ms to 4000ms in units of 1.25ms
   BLE.setConnectionInterval(0x0008, 0x0008); // 10ms
 
@@ -358,7 +412,7 @@ void characteristicRead(BLEDevice central, BLECharacteristic thisChar) {
   eventQueue.call(sensorTask); 
 }
 
-void characteristicSubscribed(BLEDevice central, BLECharacteristic thisChar) {
+void sensor_characteristicSubscribed(BLEDevice central, BLECharacteristic thisChar) {
   // central wrote new value to characteristic, update LED
   Serial.print("Characteristic subscribed. UUID: ");
   Serial.println(thisChar.uuid());
@@ -367,7 +421,7 @@ void characteristicSubscribed(BLEDevice central, BLECharacteristic thisChar) {
   //notification_status = 1;
 }
 
-void characteristicUnsubscribed(BLEDevice central, BLECharacteristic thisChar) {
+void sensor_characteristicUnsubscribed(BLEDevice central, BLECharacteristic thisChar) {
   // central wrote new value to characteristic, update LED
   Serial.print("Characteristic unsubscribed. UUID: ");
   Serial.println(thisChar.uuid());
@@ -375,6 +429,25 @@ void characteristicUnsubscribed(BLEDevice central, BLECharacteristic thisChar) {
   ticker.detach();
 
   //notification_status = 0;
+
+}
+
+void batteryMonitor_characteristicSubscribed(BLEDevice central, BLECharacteristic thisChar) {
+  // central wrote new value to characteristic, update LED
+  Serial.print("Battery Monitor Characteristic subscribed. UUID: ");
+  Serial.println(thisChar.uuid());
+  
+  // start the battery monitor task
+  batteryMonitor_Thread.start(batteryMonitor_Task);
+}
+
+void batteryMonitor_characteristicUnsubscribed(BLEDevice central, BLECharacteristic thisChar) {
+  // central wrote new value to characteristic, update LED
+  Serial.print("Battery Monitor Characteristic unsubscribed. UUID: ");
+  Serial.println(thisChar.uuid());
+
+  batteryMonitor_Thread.terminate();
+
 }
 
 void blePeripheralConnectHandler(BLEDevice central) {
