@@ -28,7 +28,7 @@ def ble_init():
 
     print("Connecting...")
 
-    FlexSensorSuit = btle.Peripheral("F4:12:FA:5A:39:51")
+    FlexSensorSuit = btle.Peripheral("93:43:92:07:91:11")
 
     FlexSensorSuit.setMTU(23)
 
