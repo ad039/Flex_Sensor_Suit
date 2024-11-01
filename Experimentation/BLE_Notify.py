@@ -45,10 +45,10 @@ def ble_task():
 
 
 def writer_task(ble_queue, f):
-    prevTime_writer = 0.0
+    prevTime_writer = time.perf_counter()
     
     writer = csv.writer(f)
-    writer.writerow(["Timestamp", "ElbowFlex", "ShoulderFlex1", "ShoulderFlex2", "ShoulderFlex3", "ForearmFlex", "HandFlex1", "HandFlex2"])
+    writer.writerow(["Timestamp", "ElbowFlex", "ShoulderFlex1", "ShoulderFlex2", "ShoulderFlex3", "ForearmFlex", "HandFlex1", "HandFlex2", "Gripper"])
 
     while True:
         # wait for and read the queue from BLE_read
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     
     ble_q = Queue(maxsize=1)
 
-    with open('Pose_Estimation/output_notify.csv', 'w', newline='') as f:
+    with open('Experimentation/output_notify.csv', 'w', newline='') as f:
         ble_thread = threading.Thread(target=ble_task, args=())
         writer_thread = threading.Thread(target=writer_task, args=(ble_q, f))
 

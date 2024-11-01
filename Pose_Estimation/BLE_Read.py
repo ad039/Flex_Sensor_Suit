@@ -60,7 +60,7 @@ def writer_task(ble_queue, f):
         prevTime_writer = time.perf_counter()
         # wait for and read the queue from BLE_read
         ble_val = ble_queue.get()
-        ble_val = struct.unpack("<hhhhhhh",ble_val)
+        ble_val = struct.unpack("<hhhhhhhh",ble_val)
         #queue_val = np.divide(ble_val,100)
         print(ble_val)
         #writer.writerow(np.divide(ble_val,100))
