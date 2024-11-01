@@ -23,7 +23,7 @@ def ble_task():
     #"93:43:92:07:91:11" for Xioa nrf52 BLE 
     #"F4:12:FA:5A:39:51" for esp32-s3 qt py
 
-    FlexSensorSuit = btle.Peripheral("93:43:92:07:91:11")
+    FlexSensorSuit = btle.Peripheral("29:F0:E3:F9:C9:CD")
 
     print("connected")
     FlexSensorSuit.getServices()
@@ -53,7 +53,7 @@ def writer_task(ble_queue, f):
     while True:
         # wait for and read the queue from BLE_read
         ble_val = ble_queue.get()
-        ble_val = struct.unpack("<hhhhhhhh",ble_val) 
+        ble_val = struct.unpack("<hhhhhhh",ble_val) 
         writer_time = (time.perf_counter()-prevTime_writer)*1000
         prevTime_writer = time.perf_counter()
         writer.writerow(np.append(writer_time, np.divide(ble_val,100)))

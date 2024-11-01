@@ -9,7 +9,7 @@ using namespace events;
 #include "SparkFun_Displacement_Sensor_Arduino_Library.h" // Click here to get the library: http://librarymanager/All#SparkFun_Displacement_Sensor
 
 //define what sensors to use
-#define ADS_sensor
+//#define ADS_sensor
 
 // define debug mode
 #define DEBUG
@@ -33,48 +33,35 @@ void ADS_init();
 ////////////////////////////////// RTOS //////////////////////////////////
 Thread bleThread(osPriorityNormal1);
 Thread watchdogThread(osPriorityNormal2);
-Thread batteryMonitor_Thread(osPriorityNormal);
-
 
 Mutex stdio_mutex;
 Mutex ble_mutex;
 
 // a struct for the sensor task to ble task queue
 typedef struct {
-  int16_t data[8];
+  int16_t data[7];
 } message_sensor;
-
-Queue<message_sensor, 50> sensorQueue; 
-MemoryPool<message_sensor, 50> sensorMpool;
 
 EventQueue eventQueue;
 
 void bleTask();
 void sensorTask();
 void watchdogTask();
-void batteryMonitor_Task();
 
 uint32_t BLE_UPDATE_INTERVAL;
 
 ////////////////////////////////// Interrupt //////////////////////////////////
 
 Ticker ticker;
-Ticker ticker_Battery;
 
 void ISRCallback_Sensor(void);
-void ISRCallback_Battery(void);
 
-std::chrono::milliseconds Ts_Sensor(10);      //sensor sampling time in ms 
-std::chrono::milliseconds Ts_Battery(1000);      //sensor sampling time in ms 
+std::chrono::milliseconds Ts_Sensor(20);      //sensor sampling time in ms 
 
 ////////////////////////////////// BLE //////////////////////////////////
 BLEService flexSensorService("0000fff0-0000-1000-8000-00805f9b34fb");
-BLEService batteryService("180F");
 
-BLECharacteristic sensor_Char("0000fff1-0000-1000-8000-00805f9b34fb", BLERead | BLENotify, 16);
-BLEUnsignedCharCharacteristic batteryMonitor_Char("2A19", BLERead | BLENotify);
-
-BLEDescriptor batteryDescriptor = BLEDescriptor("2902", "Battery Service");
+BLECharacteristic sensor_Char("0000fff1-0000-1000-8000-00805f9b34fb", BLERead | BLENotify, 14);
 
 
 // Advertising parameters should have a global scope. Do NOT define them in 'setup' or in 'loop'
@@ -85,15 +72,9 @@ uint8_t notification_status = 0;
 
 void sensor_characteristicRead(BLEDevice central, BLECharacteristic thisChar);
 
-void battery_characteristicRead(BLEDevice central, BLECharacteristic thisChar);
-
 void sensor_characteristicSubscribed(BLEDevice central, BLECharacteristic thisChar);
 
 void sensor_characteristicUnsubscribed(BLEDevice central, BLECharacteristic thisChar);
-
-void batteryMonitor_characteristicSubscribed(BLEDevice central, BLECharacteristic thisChar);
-
-void batteryMonitor_characteristicUnsubscribed(BLEDevice central, BLECharacteristic thisChar);
 
 void blePeripheralConnectHandler(BLEDevice central);
 
@@ -104,7 +85,6 @@ void BLE_init(void);
 
 /* Other */
 
-int batteryPin = PIN_VBAT;
 int counter = 0;
 
 ////////////////////////////////// Setup //////////////////////////////////
@@ -119,7 +99,7 @@ void setup()
   
   /////////////////// Wire begin ///////////////////
   Wire.begin();
-  Wire.setClock(1000000);
+  Wire.setClock(400000);
   delay(10);
 
   /////////////////// Initialise ADS sensors ///////////////////
@@ -190,17 +170,7 @@ void bleTask()
     // dispatch any queued sensor read events in the eventQueue
     eventQueue.dispatch_once();
 
-    // read the data queue if it is available
-    message_sensor *sensorMessage = NULL;
-    if (sensorQueue.try_get(&sensorMessage)) {
-      ble_mutex.lock();
-      sensor_Char.writeValue(sensorMessage->data, 16);
-      ble_mutex.unlock();
-
-      sensorMpool.free(sensorMessage);
-    }
-
-#ifdef DEBUG
+    #ifdef DEBUG
     stdio_mutex.lock();
     Serial.print("B ");
     Serial.print(Kernel::get_ms_count()-currentMillis);
@@ -221,9 +191,8 @@ void sensorTask()
 {
   uint32_t currentMillis = Kernel::get_ms_count(); 
 
-  message_sensor *sensorMessage = sensorMpool.try_alloc();
-  sensorMessage->data[0] = 0x0001;
-
+  message_sensor *sensorMessage = new message_sensor();
+  
   // for debugging ble
 #ifndef ADS_sensor
   if (counter == 1){
@@ -252,7 +221,6 @@ void sensorTask()
     counter = 1;
   }
   
-  delay(2);
   
 #endif
 
@@ -261,47 +229,76 @@ void sensorTask()
   // read elbow sensor
   if (elbowFlex.available()) {
     sensorMessage->data[0] = (int16_t)(elbowFlex.getX()*100);
+    Serial.println("e");
+  }
+  else {
+    Serial.println("elbowFlex Failed");
   }
   
   // read shoulder1 sensor
   if (shoulderFlex1.available()) {
     sensorMessage->data[1] = (int16_t)(shoulderFlex1.getX()*100);
+    Serial.println("s1");
+  }
+  else {
+    Serial.println("shoulderFlex1 Failed");
   }
 
   // read shoulder2 sensor
   if (shoulderFlex2.available()) {
     sensorMessage->data[2] = (int16_t)(shoulderFlex2.getX()*100);
+    Serial.println("s2");
+  }
+  else {
+    Serial.println("shoulderFlex2 Failed");
   }
 
   // read shoulder3 sensor
   if (shoulderFlex3.available()) {
     sensorMessage->data[3] = (int16_t)(shoulderFlex3.getX()*100);
+    Serial.println("s3");
+  }
+  else {
+    Serial.println("shoulderFlex3 Failed");
   }
   
   // read forearm sensor
   if (forearmFlex.available()) {
     sensorMessage->data[4] = (int16_t)(forearmFlex.getX()*100);
+    Serial.println("f");
+  }
+  else {
+    Serial.println("forearmFlex Failed");
   }
   
   // read hand1 sensor
   if (handFlex1.available()) {
     sensorMessage->data[5] = (int16_t)(handFlex1.getX()*100);
+    Serial.println("h1");
+  }
+  else {
+    Serial.println("handFlex1 Failed");
   }
   
   // read hand2 sensor
   if (handFlex2.available()) {
     sensorMessage->data[6] = (int16_t)(handFlex2.getX()*100);
+    Serial.println("h2");
+  }
+  else {
+    Serial.println("handFlex2 Failed");
   }
 
     // read hand2 sensor
-  if (gripperFlex.available()) {
-    sensorMessage->data[7] = (int16_t)(gripperFlex.getX()*100);
-  }
+  //if (gripperFlex.available()) {
+  //  sensorMessage->data[7] = (int16_t)(gripperFlex.getX()*100);
+  //}
 
 #endif
 
-
-  sensorQueue.try_put(sensorMessage);
+  ble_mutex.lock();
+  sensor_Char.writeValue(sensorMessage->data, 14);
+  ble_mutex.unlock();
 
 #ifdef DEBUG
   stdio_mutex.lock();
@@ -310,45 +307,6 @@ void sensorTask()
   stdio_mutex.unlock();
 #endif
 
-  //thread_sleep_for(10);
-}
-
-/* task to read the battery monitor */
-void batteryMonitor_Task() {
-
-  // define a variable to store the battery pin value
-  uint16_t batteryPin_Value;
-  uint8_t battery_Percentage;
-  float battery_Voltage;
-  float battery_lower_limit = 3.0;
-  float battery_upper_limit = 3.7;
-
-  // set pin 14 to low to get voltage output
-  pinMode(P0_14, OUTPUT);
-  digitalWrite(P0_14, LOW);
-  
-  long currentMillis = millis();
-
-  batteryPin_Value = analogRead(batteryPin);
-  battery_Voltage = (( batteryPin_Value ) / 1024.0) * 1510.0/510.0 * 3.3;
-  battery_Percentage = (battery_Voltage - battery_lower_limit)/(battery_upper_limit - battery_lower_limit) * 100;
-
-  batteryMonitor_Char.writeValue(battery_Percentage);
-
-#ifdef DEBUG
-    //stdio_mutex.lock();
-    Serial.print("BAT ");
-    Serial.print(batteryPin_Value);
-    Serial.print(" ");
-    Serial.print(battery_Voltage);
-    Serial.print(" ");
-    Serial.print(battery_Percentage);
-    Serial.print(" ");
-    Serial.print(millis()-currentMillis);
-    Serial.print(" ");
-    Serial.println(batteryMonitor_Thread.max_stack());
-    //stdio_mutex.unlock();
-#endif
 }
 
 /*
@@ -359,12 +317,6 @@ void ISRCallback_Sensor(void)
   // add the sensorTask to the event queue to call in the bleTask thread
   eventQueue.call(sensorTask);
 }
-
-void ISRCallback_Battery(void)
-{
-  eventQueue.call(batteryMonitor_Task);
-}
-
 
 
 /*
@@ -379,28 +331,20 @@ void BLE_init()
     }
   }
   
-  
+
   // set the local name peripheral advertises
   BLE.setLocalName("FlexSensorSuit");
   // set the UUID for the service this peripheral advertises:
   BLE.setAdvertisedService(flexSensorService);
-  BLE.setAdvertisedService(batteryService);
 
   flexSensorService.addCharacteristic(sensor_Char);
-  batteryService.addCharacteristic(batteryMonitor_Char);
 
   // add the service
   BLE.addService(flexSensorService);
-  BLE.addService(batteryService);
 
-  batteryMonitor_Char.addDescriptor(batteryDescriptor);
   
-  
-  int16_t flexSensorChar_init[] = {0x0000, 0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006, 0x0007};
-  sensor_Char.writeValue(flexSensorChar_init, 16);
-
-  uint8_t batteryMonitorChar_init = 0x00;
-  batteryMonitor_Char.writeValue(batteryMonitorChar_init);
+  int16_t flexSensorChar_init[] = {0x0000, 0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0006};
+  sensor_Char.writeValue(flexSensorChar_init, 14);
 
   // set BLE event handlers
   BLE.setEventHandler( BLEConnected,  blePeripheralConnectHandler);
@@ -409,10 +353,6 @@ void BLE_init()
   sensor_Char.setEventHandler( BLESubscribed, sensor_characteristicSubscribed);
   sensor_Char.setEventHandler( BLEUnsubscribed, sensor_characteristicUnsubscribed);
   sensor_Char.setEventHandler( BLERead, sensor_characteristicRead);
-  
-  batteryMonitor_Char.setEventHandler( BLESubscribed, batteryMonitor_characteristicSubscribed);
-  batteryMonitor_Char.setEventHandler( BLEUnsubscribed, batteryMonitor_characteristicUnsubscribed);
-  batteryMonitor_Char.setEventHandler( BLERead, battery_characteristicRead);
 
   // set the connection interval from between 7.5ms to 4000ms in units of 1.25ms
   BLE.setConnectionInterval(0x0008, 0x0008); // 10ms
@@ -422,8 +362,6 @@ void BLE_init()
 
   Serial.println("Bluetooth® device active, waiting for connections...");
 }
-
-
 
 // BLE Callbacks
 
@@ -435,21 +373,13 @@ void sensor_characteristicRead(BLEDevice central, BLECharacteristic thisChar) {
   eventQueue.call(sensorTask); 
 }
 
-void battery_characteristicRead(BLEDevice central, BLECharacteristic thisChar) {
-  // Read if central asks, queue a new sensorTask event to be excecuted in the bleThread
-#ifdef DEBUG
-  Serial.println("Characteristic Read");
-#endif
-  eventQueue.call(batteryMonitor_Task); 
-}
-
 void sensor_characteristicSubscribed(BLEDevice central, BLECharacteristic thisChar) {
   // central wrote new value to characteristic, update LED
   Serial.print("Characteristic subscribed. UUID: ");
   Serial.println(thisChar.uuid());
   // initialise event queue to run every Ts ms
   ticker.attach(ISRCallback_Sensor, Ts_Sensor);
-  //notification_status = 1;
+
 }
 
 void sensor_characteristicUnsubscribed(BLEDevice central, BLECharacteristic thisChar) {
@@ -459,27 +389,8 @@ void sensor_characteristicUnsubscribed(BLEDevice central, BLECharacteristic this
   // stop the ticker from running
   ticker.detach();
 
-  //notification_status = 0;
-
 }
 
-void batteryMonitor_characteristicSubscribed(BLEDevice central, BLECharacteristic thisChar) {
-  // central wrote new value to characteristic, update LED
-  Serial.print("Battery Monitor Characteristic subscribed. UUID: ");
-  Serial.println(thisChar.uuid());
-  
-  // start the battery monitor task scheduler
-  ticker_Battery.attach(ISRCallback_Battery, Ts_Battery);
-}
-
-void batteryMonitor_characteristicUnsubscribed(BLEDevice central, BLECharacteristic thisChar) {
-  // central wrote new value to characteristic, update LED
-  Serial.print("Battery Monitor Characteristic unsubscribed. UUID: ");
-  Serial.println(thisChar.uuid());
-
-  ticker_Battery.detach();
-
-}
 
 void blePeripheralConnectHandler(BLEDevice central) {
   // central connected event handler
@@ -487,9 +398,8 @@ void blePeripheralConnectHandler(BLEDevice central) {
   Serial.println(central.address());
   digitalWrite(LED_BUILTIN, LOW);
   // change the BLE update interval to every 5ms
-  BLE_UPDATE_INTERVAL = 3; //ms
-  
-  //connectionStatus = 1;
+  BLE_UPDATE_INTERVAL = 5; //ms
+
 }
 
 void blePeripheralDisconnectHandler(BLEDevice central) {
@@ -499,7 +409,7 @@ void blePeripheralDisconnectHandler(BLEDevice central) {
   digitalWrite(LED_BUILTIN, HIGH);
   // change ble update interval back to every 1 second
   BLE_UPDATE_INTERVAL = 1000; //ms
-  //connectionStatus = 0;
+
 }
 
 
@@ -647,6 +557,7 @@ void ADS_init()
   }
 
     //gripper ADS begin
+  /*
   if (gripperFlex.begin(0x1C) == false)
   {
     Serial.println(F("Gripper sensor not detected. Check wiring. Freezing..."));
@@ -663,6 +574,7 @@ void ADS_init()
     gripperFlex.run();
     delay(10);
   }
+  */
 }
 
 void TCA9548A(uint8_t bus) {
